@@ -9,3 +9,4 @@ secrets/
 private_media/
 venv/
 env/
+.showcase_articles_*

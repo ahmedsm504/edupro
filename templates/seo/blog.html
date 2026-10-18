@@ -7,7 +7,7 @@
 <div class="layout"><div>
   {% if featured %}<a class="card feat" href="{{ featured.get_absolute_url }}"><div class="cover">{% if featured.cover %}<img src="{{ featured.cover.url }}" alt="{{ featured.cover_alt|default:featured.title }}">{% else %}★ مقال مميز{% endif %}</div>
     <div class="body"><span class="chip" style="align-self:flex-start">{{ featured.category.name }}</span><h2>{{ featured.title }}</h2><p class="muted">{{ featured.excerpt|truncatechars:200 }}</p>
-      <div class="meta"><span>{{ featured.author.full_name }}</span><span>{{ featured.reading_minutes }} دقايق قراءة</span></div></div></a>{% endif %}
+      <div class="meta"><span>{{ featured.author.full_name }}</span><span>{{ featured.reading_minutes|read_time }}</span></div></div></a>{% endif %}
   {% if page.object_list %}<div class="grid g2">{% for a in page %}{% include "seo/_article.html" %}{% endfor %}</div>{% else %}<div class="empty"><b>مفيش مقالات هنا لسه</b><a href="/blog/">كل المقالات</a></div>{% endif %}
   {% include "seo/_pager.html" %}
 </div>

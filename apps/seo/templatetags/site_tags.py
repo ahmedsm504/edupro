@@ -37,3 +37,17 @@ def minutes(seconds):
 def stars(value):
     v = round(float(value or 0))
     return "★" * v + "☆" * (5 - v)
+
+
+@register.filter
+def read_time(n):
+    """وقت القراءة بالعربي الصح: دقيقة / دقيقتين / 3 دقايق / 11 دقيقة."""
+    try:
+        n = int(n)
+    except (TypeError, ValueError):
+        return ""
+    if n <= 1:
+        return "دقيقة قراءة"
+    if n == 2:
+        return "دقيقتين قراءة"
+    return f"{n} {'دقايق' if n <= 10 else 'دقيقة'} قراءة"

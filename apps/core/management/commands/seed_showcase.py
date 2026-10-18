@@ -21,6 +21,8 @@ from django.db import transaction
 from django.utils import timezone
 
 COVERS = Path(settings.BASE_DIR) / "demo_assets" / "covers"
+INLINE = Path(settings.BASE_DIR) / "demo_assets" / "inline"
+ARTICLES_VERSION = "v2"  # لما المحتوى يتحدّث: غيّر الرقم و start.sh هيحدّث مقالات الفريق مرة واحدة
 EDITOR_USERNAME = "edupro-team"
 
 COVER_FILES = ["math-plan.jpg", "quran-kids.jpg", "tajweed.jpg", "english-30-days.jpg",
@@ -117,9 +119,13 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser):
         parser.add_argument("--if-empty", action="store_true", help="يشتغل بس لو مفيش مقالات منشورة")
+        parser.add_argument("--refresh-articles", action="store_true",
+                            help="حدّث مقالات «فريق المنصة» للنسخة الأحدث (مرة واحدة لكل نسخة)")
 
     def handle(self, *args, **opts):
         from apps.seo.models import Article
+        if opts["refresh_articles"]:
+            return self._refresh()
         if opts["if_empty"] and Article.objects.exists():
             self.stdout.write("seed_showcase: فيه محتوى بالفعل — مفيش حاجة اتعملت.")
             return
@@ -130,6 +136,22 @@ class Command(BaseCommand):
             n_art = self._articles(S, editor)
             n_q = self._questions(S, editor)
         self.stdout.write(self.style.SUCCESS(f"seed_showcase: {n_art} مقال و {n_q} سؤال."))
+
+    def _refresh(self):
+        marker = Path(settings.MEDIA_ROOT).parent / f".showcase_articles_{ARTICLES_VERSION}"
+        if marker.exists():
+            self.stdout.write(f"seed_showcase: المقالات على النسخة {ARTICLES_VERSION} بالفعل.")
+            return
+        from apps.catalog.models import Subject
+        with transaction.atomic():
+            S = {x.slug: x for x in Subject.objects.all()}
+            n = self._articles(S, self._editor(), refresh=True) if S else 0
+        try:
+            marker.parent.mkdir(parents=True, exist_ok=True)
+            marker.write_text(ARTICLES_VERSION)
+        except OSError:
+            pass
+        self.stdout.write(self.style.SUCCESS(f"seed_showcase: اتحدّث {n} مقال للنسخة {ARTICLES_VERSION}."))
 
     # ---------------------------------------------------------------
     def _catalog(self):
@@ -198,10 +220,25 @@ class Command(BaseCommand):
             for i, (q, a) in enumerate(FAQS):
                 FAQ.objects.create(question=q, answer=a, order=i)
 
-    def _articles(self, S, editor):
+    def _inline_url(self, name):
+        """صور جوه المقالات: بتترفع مرة واحدة على التخزين وبيرجع رابطها."""
+        from django.core.files.storage import default_storage
+        key = f"blog/inline/{name}"
+        src = INLINE / name
+        if not default_storage.exists(key) and src.exists():
+            with open(src, "rb") as fh:
+                key = default_storage.save(key, File(fh))
+        return default_storage.url(key)
+
+    def _render_body(self, body):
+        import re
+        return re.sub(r"__IMG__/([\w.-]+)", lambda m: self._inline_url(m.group(1)), body.strip())
+
+    def _articles(self, S, editor, refresh=False):
         from apps.seo.models import Article, BlogCategory, Tag
 
-        from ._demo_content import ARTICLES, CATEGORIES
+        from ._demo_content import CATEGORIES
+        from ._showcase_articles import ARTICLES
         now = timezone.now()
         cats = {}
         for i, (name, slug, desc, subj) in enumerate(CATEGORIES):
@@ -209,17 +246,26 @@ class Command(BaseCommand):
                 slug=slug, defaults={"name": name, "description": desc, "order": i, "subject": S.get(subj) if subj else None})[0]
         made = 0
         for i, a in enumerate(ARTICLES):
-            if Article.objects.filter(title=a["title"]).exists():
+            art = Article.objects.filter(title=a["title"]).first()
+            if art and not (refresh and art.author_id == editor.id):
                 continue
-            body = a["body"].replace("الخطة اللي بمشّي بيها طلابي كل سنة", "خطة عملية بيمشي عليها طلاب كتير")
-            art = Article(title=a["title"], category=cats[a["cat"]], subject=S.get(a["subject"]) if a["subject"] else None,
-                          author=editor, body=body, faq=a["faq"], meta_description=a["meta"], focus_keyword=a["keyword"],
-                          is_featured=a["featured"], status="published", cover_alt=COVER_ALTS[i] if i < len(COVER_ALTS) else "")
-            if i < len(COVER_FILES) and (COVERS / COVER_FILES[i]).exists():
-                with open(COVERS / COVER_FILES[i], "rb") as fh:
-                    art.cover.save(COVER_FILES[i], File(fh), save=False)
+            fields = dict(category=cats[a["cat"]], subject=S.get(a["subject"]) if a["subject"] else None,
+                          body=self._render_body(a["body"]), faq=a["faq"], meta_description=a["meta"],
+                          focus_keyword=a["keyword"], is_featured=a["featured"], excerpt="",
+                          cover_alt=COVER_ALTS[i] if i < len(COVER_ALTS) else "")
+            new = art is None
+            if new:
+                art = Article(title=a["title"], author=editor, status="published", **fields)
+            else:
+                for k, v in fields.items():
+                    setattr(art, k, v)
+            cover = COVERS / a.get("cover", "")
+            if (new or not art.cover) and a.get("cover") and cover.exists():
+                with open(cover, "rb") as fh:
+                    art.cover.save(a["cover"], File(fh), save=False)
             art.save()
-            Article.objects.filter(pk=art.pk).update(published_at=now - dt.timedelta(days=2 + i * 4))
+            if new:
+                Article.objects.filter(pk=art.pk).update(published_at=now - dt.timedelta(days=2 + i * 4))
             art.tags.set([Tag.objects.get_or_create(name=t)[0] for t in a["tags"]])
             made += 1
         return made

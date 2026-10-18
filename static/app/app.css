@@ -650,3 +650,17 @@ table.t tr.click:hover td{background:var(--surface-2)}
   .login-board::after{display:none}
   .login-form{padding:24px 18px 40px;align-items:flex-start}
 }
+/* ---------- موبايل: صفوف وفورمات بتلف بدل ما تطلع برا الشاشة ---------- */
+@media (max-width:600px){
+  .page .row{flex-wrap:wrap}
+  .page .row.between{row-gap:8px}
+  .page .input{max-width:100%;min-width:0}
+  .page-head>.row,.page-head>form,.page-head form.row{width:100%}
+  .page-head form.row .input{flex:1 1 140px;width:auto!important}
+  .page-head .btn{flex:1 1 auto}
+  .tabs{overflow-x:auto;flex-wrap:nowrap;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+  .tabs::-webkit-scrollbar{display:none}
+  .tabs button,.tabs a{flex:none}
+  .modal{width:calc(100vw - 20px);max-height:calc(100vh - 30px)}
+  .form-grid{grid-template-columns:1fr}
+}
