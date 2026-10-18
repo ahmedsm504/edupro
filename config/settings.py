@@ -41,7 +41,27 @@ def env_list(key, default=""):
 ON_RAILWAY = bool(os.environ.get("RAILWAY_ENVIRONMENT_NAME") or os.environ.get("RAILWAY_PROJECT_ID"))
 RAILWAY_DOMAIN = os.environ.get("RAILWAY_PUBLIC_DOMAIN", "")
 
-SECRET_KEY = env("SECRET_KEY", "dev-only-insecure-key-change-me-in-production-0123456789")
+def _persistent_secret_key():
+    """
+    على Railway لو SECRET_KEY مش متحط: بنولّد مفتاح عشوائي مرة واحدة ونحفظه على الـ Volume (/data)
+    عشان يفضل ثابت بين كل نشر والتاني (من غيره الناس هتخرج من حساباتها مع كل نشر).
+    """
+    import secrets
+    path = Path(env("SECRET_KEY_FILE", "/data/.django_secret_key"))
+    try:
+        if path.exists():
+            return path.read_text().strip()
+        if path.parent.is_dir():
+            key = secrets.token_urlsafe(50)
+            path.write_text(key)
+            os.chmod(path, 0o600)
+            return key
+    except OSError:
+        pass
+    return secrets.token_urlsafe(50)  # مفيش volume (زي أمر migrate): مفتاح مؤقت، مش مستخدم في توقيع حاجة دايمة
+
+
+SECRET_KEY = env("SECRET_KEY") or (_persistent_secret_key() if ON_RAILWAY else "dev-only-insecure-key-change-me-in-production-0123456789")
 DEBUG = env_bool("DEBUG", not ON_RAILWAY)
 ALLOWED_HOSTS = env_list("ALLOWED_HOSTS", "*" if DEBUG else "")
 CSRF_TRUSTED_ORIGINS = env_list("CSRF_TRUSTED_ORIGINS", "")
