@@ -1,0 +1,15 @@
+{% extends "seo/base.html" %}
+{% block title %}دفع تجريبي | {{ SITE_NAME }}{% endblock %}
+{% block content %}<div class="wrap prose" style="padding:56px 20px;max-width:520px">
+<div class="card">
+  <h1 style="font-size:24px;margin-top:0">صفحة دفع تجريبية</h1>
+  <p class="meta">دي محاكاة لـ Paymob بتظهر بس في بيئة التجربة. محدش هيتخصم منه حاجة.</p>
+  <p><b>{{ order.title }}</b></p>
+  <p class="price" style="font-size:28px">{{ order.total }} {{ order.currency }}</p>
+  {% if order.status == "pending" %}
+  <form method="post" style="display:flex;gap:10px;flex-wrap:wrap">
+    <button class="btn" name="result" value="success">ادفع (نجاح)</button>
+    <button class="btn ghost" name="result" value="fail">محاكاة فشل الدفع</button>
+  </form>
+  {% else %}<p>حالة الطلب: <b>{{ order.get_status_display }}</b></p>{% endif %}
+</div></div>{% endblock %}

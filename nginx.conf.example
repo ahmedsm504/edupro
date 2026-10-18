@@ -1,0 +1,29 @@
+# Nginx أمام Daphne — الـ WebSocket محتاج Upgrade headers
+server {
+    listen 443 ssl http2;
+    server_name example.com www.example.com;
+    client_max_body_size 2100M;   # = VIDEO_MAX_UPLOAD_MB + هامش
+    client_body_timeout 600s;
+
+    location /static/ { alias /srv/edupro/staticfiles/; expires 30d; }
+    location /media/  { alias /srv/edupro/media/; expires 7d; }
+
+    # فيديوهات وملفات الدروس المحمية: Django بيتأكد من الصلاحية ويرد بـ X-Accel-Redirect (PROTECTED_MEDIA_ACCEL=true)
+    location /_protected/ { internal; alias /srv/edupro/private_media/; add_header Accept-Ranges bytes; }
+
+    location /ws/ {
+        proxy_pass http://127.0.0.1:8000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host $host;
+        proxy_read_timeout 3600s;
+    }
+
+    location / {
+        proxy_pass http://127.0.0.1:8000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto https;
+    }
+}

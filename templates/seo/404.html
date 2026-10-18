@@ -1,0 +1,8 @@
+{% extends "seo/base.html" %}{% load site_tags %}
+{% block title %}الصفحة مش موجودة | {{ SITE_NAME }}{% endblock %}
+{% block content %}<div class="wrap" style="text-align:center;padding:70px 20px">
+<div style="font-size:84px;font-weight:700;color:var(--board);line-height:1">404</div>
+<h1 style="font-size:28px;margin:12px 0">الصفحة دي مش موجودة</h1><p class="muted">يمكن اللينك اتغير أو الصفحة اتشالت. جرّب تبحث:</p>
+<form action="/search/" class="hero-search" style="margin:20px auto" role="search"><input name="q" placeholder="ابحث عن مدرس أو سؤال…" aria-label="بحث"><button class="btn">بحث</button></form>
+<div class="chips" style="justify-content:center;margin-top:20px">{% for s in subjects %}<a class="chip" href="{{ s.get_absolute_url }}">{{ s.name }}</a>{% endfor %}</div>
+<p style="margin-top:26px"><a class="btn" href="/">الرئيسية</a></p></div>{% endblock %}

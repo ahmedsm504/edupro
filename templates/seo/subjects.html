@@ -1,0 +1,9 @@
+{% extends "seo/base.html" %}{% load site_tags %}
+{% block title %}كل المواد الدراسية أونلاين — مدرسين لكل مادة | {{ SITE_NAME }}{% endblock %}
+{% block description %}اختار المادة اللي محتاجها: رياضيات، فيزياء، كيمياء، لغات، قرآن، برمجة وأكتر — مع مدرسين معتمدين وحصص لايف وبنك أسئلة.{% endblock %}
+{% block content %}<div class="wrap">
+{% include "seo/_crumbs.html" %}
+<header class="phead"><h1>كل المواد</h1><p>لكل مادة صفحة فيها أفضل المدرسين، الكورسات، الباقات، وأسئلة الطلاب بإجابات المدرسين.</p></header>
+<div class="grid g3" style="padding-bottom:40px">{% for s in subjects %}<a class="card subj" href="{{ s.get_absolute_url }}"><span class="ico" style="--c:{{ s.color|default:'#0B6E5F' }}">{{ s.name|initial }}</span>
+  <div><b>{{ s.name }}</b><span>{{ s.tc }} مدرس · {{ s.qc }} سؤال</span></div></a>{% endfor %}</div>
+</div>{% endblock %}

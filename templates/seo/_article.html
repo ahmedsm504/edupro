@@ -1,0 +1,5 @@
+<a class="card acard" href="{{ a.get_absolute_url }}">
+  <div class="cover">{% if a.cover %}<img src="{{ a.cover.url }}" alt="{{ a.cover_alt|default:a.title }}" loading="lazy">{% else %}{{ a.category.name|default:"المدونة" }}{% endif %}</div>
+  <div class="body"><h3>{{ a.title }}</h3><p>{{ a.excerpt }}</p>
+    <div class="meta" style="margin-top:auto"><span>{{ a.author.full_name }}</span><span>{{ a.reading_minutes }} دقايق قراءة</span><time datetime="{{ a.published_at|date:'c' }}">{{ a.published_at|date:"j F Y" }}</time></div></div>
+</a>

@@ -1,0 +1,53 @@
+{% extends "seo/base.html" %}{% load site_tags %}
+{% block title %}{{ c.title }} — كورس {{ c.subject.name }} أونلاين | {{ SITE_NAME }}{% endblock %}
+{% block description %}{% firstof c.meta_description c.short_description %}{% endblock %}
+{% block og_title %}{{ c.title }}{% endblock %}
+{% block og_extra %}{% if c.thumbnail %}<meta property="og:image" content="{{ SITE_URL }}{{ c.thumbnail.url }}">{% elif preview.thumbnail %}<meta property="og:image" content="{{ preview.thumbnail }}">{% endif %}{% endblock %}
+{% block content %}<div class="wrap">
+{% include "seo/_crumbs.html" %}
+<div class="layout">
+  <div>
+    <header class="phead"><span class="chip">{{ c.subject.name }}</span><h1 style="margin-top:10px">{{ c.title }}</h1><p>{{ c.short_description }}</p>
+      <div class="meta" style="margin-top:12px;font-size:15px"><span>مع <a href="{{ c.instructor.teacher_profile.get_absolute_url }}">{{ c.instructor.full_name }}</a></span><span>{{ c.students_count }} طالب</span>
+        {% if c.rating_count %}<span class="stars">★ {{ c.rating_avg|floatformat:"1u" }} <small>({{ c.rating_count }})</small></span>{% endif %}<span>{{ lessons_count }} درس · {{ total_minutes }} دقيقة</span>
+        {% if free_count %}<span class="verified">{{ free_count }} درس مجاني</span>{% endif %}</div></header>
+
+    {% if preview %}<section class="preview" style="margin-bottom:22px">
+      <button type="button" class="lite" data-src="{{ preview.embed_url }}&autoplay=1" aria-label="شغّل معاينة مجانية: {{ preview.title }}"
+        {% if preview.thumbnail %}style="background-image:url('{{ preview.thumbnail }}')"{% endif %}>
+        <span class="lite-play"><svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5.5v13l11-6.5z"/></svg></span>
+        <span class="lite-cap">معاينة مجانية · {{ preview.title }}{% if preview.duration_seconds %} · {{ preview.duration_seconds|minutes }} د{% endif %}</span></button></section>{% endif %}
+
+    {% if c.what_you_learn %}<section class="card" style="margin-bottom:22px"><h2 style="font-size:20px;margin-bottom:10px">هتتعلم إيه</h2>
+      <ul class="learn">{% for x in c.what_you_learn %}<li>{{ x }}</li>{% endfor %}</ul></section>{% endif %}
+
+    <section style="margin-bottom:22px"><div class="row-between" style="margin-bottom:12px"><h2 style="font-size:20px">محتوى الكورس</h2>
+      <span class="muted small">{{ sections|length }} وحدة · {{ lessons_count }} درس · {{ total_minutes }} دقيقة</span></div>
+      <div class="syllabus">{% for s in sections %}<details {% if forloop.first %}open{% endif %}><summary><span>{{ s.title }}</span><span class="muted small">{{ s.lessons.all|length }} درس</span></summary>
+        <ul>{% for l in s.lessons.all %}<li>
+          <span class="les-t"><span class="les-ic {{ l.type }}" aria-hidden="true"></span>
+            {% if l.access == "free" %}<a href="/app/#/courses/{{ c.slug }}?lesson={{ l.id }}">{{ l.title }}</a> <span class="verified">مجاني</span>
+            {% elif l.access == "members" %}<a href="/app/#/courses/{{ c.slug }}?lesson={{ l.id }}">{{ l.title }}</a> <span class="acc-m">ببلاش بحساب</span>
+            {% else %}{{ l.title }} <span class="acc-lock" title="للمشتركين">🔒</span>{% endif %}</span>
+          <span class="muted">{% if l.duration_seconds %}{{ l.duration_seconds|minutes }} د{% elif l.type == "pdf" %}PDF{% endif %}</span></li>{% endfor %}</ul></details>{% endfor %}</div></section>
+
+    <section class="card" style="margin-bottom:22px"><h2 style="font-size:20px;margin-bottom:10px">عن الكورس</h2><p>{{ c.description|linebreaksbr }}</p>
+      {% if c.requirements %}<h3 style="margin:14px 0 6px">المتطلبات</h3><ul>{% for r in c.requirements %}<li>{{ r }}</li>{% endfor %}</ul>{% endif %}</section>
+    {% if reviews %}<section><h2 style="font-size:20px;margin-bottom:12px">تقييمات الطلاب</h2><div class="grid g2">{% for r in reviews %}<div class="card"><div class="stars">{{ r.rating|stars }}</div><p style="margin:6px 0">{{ r.comment }}</p><div class="muted small">{{ r.student.full_name }}</div></div>{% endfor %}</div></section>{% endif %}
+  </div>
+  <aside class="side"><div class="card buy">
+    <div class="price" style="font-size:30px">{% if c.price %}{{ c.price|floatformat:0 }} ج.م{% if c.old_price %}<s>{{ c.old_price|floatformat:0 }}</s>{% endif %}{% else %}مجاني{% endif %}</div>
+    <p class="muted small" style="margin:6px 0 14px">{% if c.access_days %}وصول لمدة {{ c.access_days }} يوم{% else %}وصول مدى الحياة{% endif %}</p>
+    <a class="btn chalk" style="width:100%" href="/app/#/courses/{{ c.slug }}">{% if c.price %}اشترك في الكورس{% else %}ابدأ مجاناً{% endif %}</a>
+    {% if free_count and c.price %}<a class="btn ghost" style="width:100%;margin-top:8px" href="/app/#/courses/{{ c.slug }}">شوف الدروس المجانية</a>{% endif %}
+    {% if c.included_in_subscription %}<p class="note-good">🎁 مفتوح ببلاش لطلاب الحصص اللايف مع {{ c.instructor.full_name }}</p>{% endif %}
+    <ul class="feat"><li>{{ lessons_count }} درس فيديو وملفات</li><li>{{ total_minutes }} دقيقة شرح</li><li>كمّل من مكان ما وقفت</li><li>ملاحظاتك على كل درس</li>
+      {% if c.certificate_enabled %}<li>شهادة إتمام بكود تحقق</li>{% endif %}<li>على الموبايل والكمبيوتر</li></ul></div></aside>
+</div></div>
+<script>
+document.querySelectorAll(".lite").forEach(b => b.addEventListener("click", () => {
+  const f = document.createElement("iframe");
+  f.src = b.dataset.src; f.title = b.getAttribute("aria-label"); f.allow = "accelerometer; autoplay; encrypted-media; picture-in-picture; fullscreen"; f.allowFullscreen = true;
+  f.className = "lite-frame"; b.replaceWith(f);
+}));
+</script>{% endblock %}

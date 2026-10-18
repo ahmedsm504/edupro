@@ -1,0 +1,36 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: edupro
+      POSTGRES_USER: edupro
+      POSTGRES_PASSWORD: password
+    volumes: [pgdata:/var/lib/postgresql/data]
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+
+  web:
+    build: .
+    env_file: .env
+    command: sh -c "python manage.py migrate --noinput && daphne -b 0.0.0.0 -p 8000 config.asgi:application"
+    volumes: [media:/app/media, private_media:/app/private_media, static:/app/staticfiles, ./secrets:/app/secrets:ro]
+    ports: ["8000:8000"]
+    depends_on: [db, redis]
+    restart: unless-stopped
+
+  # تذكيرات الحصص + إنهاء الاشتراكات + توليد الحصص كل 5 دقايق
+  cron:
+    build: .
+    env_file: .env
+    command: sh -c "while true; do python manage.py tutoring_cron; sleep 300; done"
+    depends_on: [db, redis]
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+  media:
+  private_media:   # فيديوهات الدروس المحمية — اربطها بـ Nginx على /_protected/
+  static:

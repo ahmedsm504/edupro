@@ -1,0 +1,26 @@
+{% extends "seo/base.html" %}
+{% block title %}شهادة إتمام: {{ cert.course_title }} — {{ cert.student_name }} | {{ SITE_NAME }}{% endblock %}
+{% block description %}شهادة إتمام كورس {{ cert.course_title }} من {{ SITE_NAME }} — كود التحقق {{ cert.code }}{% endblock %}
+{% block content %}<div class="wrap">
+{% include "seo/_crumbs.html" %}
+<div class="verify-bar no-print"><span class="verified">✓ شهادة حقيقية</span> اتصدرت من {{ SITE_NAME }} بتاريخ {{ cert.created_at|date:"j F Y" }} — كود التحقق <b dir="ltr">{{ cert.code }}</b>
+  <button type="button" class="btn ghost" onclick="window.print()">اطبعها / احفظها PDF</button></div>
+<article class="certificate" aria-label="شهادة إتمام">
+  <div class="cert-in">
+    <div class="cert-brand"><img src="/static/img/logo.svg" alt="" width="56" height="56"><span>{{ SITE_NAME }}</span></div>
+    <p class="cert-kicker">شهادة إتمام</p>
+    <p class="cert-to">بنشهد إن</p>
+    <h1 class="cert-name">{{ cert.student_name }}</h1>
+    <p class="cert-to">خلّص بنجاح كورس</p>
+    <h2 class="cert-course">{{ cert.course_title }}</h2>
+    <div class="cert-meta">
+      <div><span>المدرس</span><b>{{ cert.instructor_name }}</b></div>
+      {% if cert.hours %}<div><span>مدة الكورس</span><b>{{ cert.hours|floatformat:"-1" }} ساعة</b></div>{% endif %}
+      <div><span>التاريخ</span><b>{{ cert.created_at|date:"j F Y" }}</b></div>
+      <div><span>كود التحقق</span><b dir="ltr">{{ cert.code }}</b></div>
+    </div>
+    <p class="cert-url" dir="ltr">{{ SITE_URL }}{{ cert.get_absolute_url }}</p>
+  </div>
+</article>
+<p class="no-print" style="text-align:center;margin-top:18px"><a href="{{ cert.course.get_absolute_url }}">عن الكورس</a></p>
+</div>{% endblock %}

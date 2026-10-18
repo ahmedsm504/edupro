@@ -1,0 +1,12 @@
+{% extends "seo/base.html" %}{% load site_tags %}
+{% block title %}{% if current_subject %}كورسات {{ current_subject.name }} أونلاين{% else %}كورسات أونلاين مسجلة لكل المواد{% endif %} | {{ SITE_NAME }}{% endblock %}
+{% block description %}كورسات مسجلة بشرح مبسط ودروس معاينة مجانية — ذاكر في الوقت اللي يناسبك وتابع تقدمك.{% endblock %}
+{% block canonical %}{{ SITE_URL }}/courses/{% if current_subject %}?subject={{ current_subject.slug }}{% endif %}{% endblock %}
+{% block content %}<div class="wrap">
+{% include "seo/_crumbs.html" %}
+<header class="phead"><h1>{% if current_subject %}كورسات {{ current_subject.name }}{% else %}الكورسات المسجلة{% endif %}</h1><p>كل كورس فيه دروس مجانية تقدر تشوفها قبل ما تشترك.</p></header>
+<div class="filters"><a class="chip {% if not current_subject and not request.GET.free %}on{% endif %}" href="/courses/">الكل</a><a class="chip {% if request.GET.free %}on{% endif %}" href="?free=1">المجانية</a>
+  {% for s in subjects %}<a class="chip {% if current_subject.id == s.id %}on{% endif %}" href="?subject={{ s.slug }}">{{ s.name }}</a>{% endfor %}</div>
+{% if page.object_list %}<div class="grid g3">{% for c in page %}{% include "seo/_course.html" %}{% endfor %}</div>{% else %}<div class="empty"><b>مفيش كورسات هنا لسه</b></div>{% endif %}
+{% include "seo/_pager.html" %}
+</div>{% endblock %}

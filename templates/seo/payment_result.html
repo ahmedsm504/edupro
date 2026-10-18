@@ -1,0 +1,7 @@
+{% extends "seo/base.html" %}
+{% block title %}نتيجة الدفع | {{ SITE_NAME }}{% endblock %}
+{% block content %}<div class="wrap prose" style="text-align:center;padding:80px 20px">
+{% if success %}<h1>✅ تم الدفع بنجاح</h1><p>اشتراكك هيتفعل خلال ثواني. تقدر ترجع للتطبيق.</p>
+{% else %}<h1>لم تكتمل عملية الدفع</h1><p>لو اتخصم منك مبلغ هيتم تأكيده تلقائياً خلال دقائق، أو تواصل مع الدعم.</p>{% endif %}
+<p><a class="btn" href="/">الرئيسية</a></p>
+</div>{% endblock %}

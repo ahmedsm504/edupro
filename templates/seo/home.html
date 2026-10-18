@@ -1,0 +1,82 @@
+{% extends "seo/base.html" %}{% load site_tags %}
+{% block title %}{{ SITE_NAME }} — مدرس خصوصي أونلاين لكل المواد | حصص لايف وأسئلة وأجوبة{% endblock %}
+{% block content %}
+<section class="hero"><div class="wrap">
+  <div>
+    <span class="eyebrow">● أول حصة تجريبية مجاناً في كل مادة</span>
+    <h1>مدرسك الخاص <mark>لكل مادة</mark>،<br>من بيتك وفي الميعاد اللي يناسبك</h1>
+    <p class="lead">حصص لايف فردية مع مدرسين معتمدين، تقرير بعد كل حصة، واجبات بتتصحح فوراً، وبنك أسئلة بيرد عليه مدرسين متخصصين.</p>
+    <form class="hero-search" action="/teachers/" role="search">
+      <label class="sr" for="hs">المادة</label>
+      <select id="hs" name="subject"><option value="">كل المواد</option>{% for s in subjects %}<option value="{{ s.slug }}">{{ s.name }}</option>{% endfor %}</select>
+      <label class="sr" for="hq2">اسم المدرس</label><input id="hq2" name="q" placeholder="ابحث باسم المدرس أو المادة" aria-label="بحث">
+      <button class="btn">لاقي مدرسك</button>
+    </form>
+    <div class="trust"><div><b>{{ stats.teachers }}+</b>مدرس معتمد</div><div><b>{{ stats.subjects }}</b>مادة</div><div><b>{{ stats.answers }}+</b>إجابة من المدرسين</div><div><b>{{ stats.courses }}</b>كورس مسجل</div></div>
+  </div>
+  <div class="board" aria-hidden="true">
+    <div class="chalk-title"><span>رياضيات · ثالثة ثانوي</span><span class="live">لايف الآن</span></div>
+    <div class="eq">∫ 2x dx = x² + c</div>
+    <div style="color:#A8CEC5;font-size:14px">التكامل غير المحدد — المثال التالت</div>
+    <div class="who"><span class="av">أ</span><div><b style="color:#fff">أ. أحمد سامي</b><div style="font-size:13px;color:#A8CEC5">12 سنة خبرة · ★ 4.9</div></div></div>
+    <div class="note"><b>تقرير الحصة:</b> فهم ممتاز للتكامل بالتعويض — الواجب: تمارين ص 40</div>
+  </div>
+</div></section>
+
+<section class="sec"><div class="wrap">
+  <div class="sec-head"><div><h2>اختار المادة</h2><p>من الابتدائي للجامعة، ومعاهم اللغات والقرآن والبرمجة.</p></div><a class="more" href="/subjects/">كل المواد</a></div>
+  <div class="grid g4">{% for s in subjects %}<a class="card subj" href="{{ s.get_absolute_url }}"><span class="ico" style="--c:{{ s.color|default:'#0B6E5F' }}">{{ s.name|initial }}</span><div><b>{{ s.name }}</b><span>{{ s.tc }} مدرس</span></div></a>{% endfor %}</div>
+</div></section>
+
+<section class="sec tint"><div class="wrap">
+  <div class="sec-head"><div><h2>إزاي بتشتغل؟</h2><p>من أول ما تختار المادة لحد ما تشوف درجاتك بتعلى.</p></div></div>
+  <div class="steps">
+    <div class="step"><h3>اختار مدرسك</h3><p>شوف بروفايل كل مدرس وتقييمات الطلاب وإجاباته في بنك الأسئلة.</p></div>
+    <div class="step"><h3>جرّب ببلاش</h3><p>أول حصة تجريبية مجانية عشان تتأكد إنه مناسب ليك.</p></div>
+    <div class="step"><h3>اشترك وادفع بسهولة</h3><p>فيزا، محافظ إلكترونية، أو فوري — والمواعيد بتتحدد على مزاجك.</p></div>
+    <div class="step"><h3>تابع تقدمك</h3><p>تقرير بعد كل حصة، واجبات وامتحانات بتتصحح فوراً.</p></div>
+  </div>
+</div></section>
+
+{% if teachers %}<section class="sec"><div class="wrap">
+  <div class="sec-head"><div><h2>مدرسين بيحبهم طلابهم</h2><p>كل مدرس بيعدي على مقابلة وتقييم، ومشرف بيتابع جودة حصصه.</p></div><a class="more" href="/teachers/">كل المدرسين</a></div>
+  <div class="grid g3">{% for t in teachers %}{% include "seo/_teacher.html" %}{% endfor %}</div>
+</div></section>{% endif %}
+
+{% if questions %}<section class="sec tint"><div class="wrap">
+  <div class="sec-head"><div><h2>عندك سؤال؟ اسأل والمدرسين يردوا</h2><p>بنك أسئلة مفتوح للكل — أسئلة الطلاب وإجابات مدرسين متخصصين.</p></div><a class="more" href="/questions/">كل الأسئلة</a></div>
+  <div class="qlist">{% for q in questions %}{% include "seo/_question.html" %}{% endfor %}</div>
+  <p style="text-align:center;margin-top:20px"><a class="btn chalk" href="/app/#/qa/ask">اسأل سؤالك مجاناً</a></p>
+</div></section>{% endif %}
+
+{% if packages %}<section class="sec"><div class="wrap">
+  <div class="sec-head"><div><h2>أسعار واضحة</h2><p>من غير اشتراك سنوي ومن غير مفاجآت.</p></div></div>
+  <div class="grid g3">{% for p in packages %}<div class="card pkg {% if p.is_featured %}hot{% endif %}"><h3>{{ p.name }}</h3>
+    <div class="amount">{{ p.price|floatformat:0 }} <small>ج.م / شهر</small></div>
+    <ul><li>{{ p.sessions_count }} حصة لايف</li><li>{{ p.session_duration }} دقيقة للحصة</li><li>تقرير بعد كل حصة</li><li>صالحة {{ p.duration_days }} يوم</li></ul>
+    <a class="btn {% if not p.is_featured %}ghost{% endif %}" href="/login/">ابدأ دلوقتي</a></div>{% endfor %}</div>
+</div></section>{% endif %}
+
+{% if courses %}<section class="sec tint"><div class="wrap">
+  <div class="sec-head"><div><h2>كورسات مسجلة</h2><p>ذاكر في الوقت اللي يناسبك وارجع للدرس أكتر من مرة.</p></div><a class="more" href="/courses/">كل الكورسات</a></div>
+  <div class="grid g3">{% for c in courses %}{% include "seo/_course.html" %}{% endfor %}</div>
+</div></section>{% endif %}
+
+{% if articles %}<section class="sec"><div class="wrap">
+  <div class="sec-head"><div><h2>من المدونة</h2><p>نصايح مذاكرة وشروحات مبسطة من مدرسين المنصة.</p></div><a class="more" href="/blog/">كل المقالات</a></div>
+  <div class="grid g3">{% for a in articles %}{% include "seo/_article.html" %}{% endfor %}</div>
+</div></section>{% endif %}
+
+{% if testimonials %}<section class="sec tint"><div class="wrap">
+  <div class="sec-head"><h2>قالوا عننا</h2></div>
+  <div class="grid g3">{% for t in testimonials %}<figure class="card quote" style="margin:0"><p>{{ t.text }}</p><figcaption><b>{{ t.name }}</b> <span class="muted small">· {{ t.role }}</span></figcaption></figure>{% endfor %}</div>
+</div></section>{% endif %}
+
+{% if faqs %}<section class="sec"><div class="wrap" style="max-width:820px">
+  <div class="sec-head"><h2>أسئلة شائعة</h2></div>
+  <div class="faq">{% for f in faqs %}<details{% if forloop.first %} open{% endif %}><summary>{{ f.question }}</summary><div>{{ f.answer }}</div></details>{% endfor %}</div>
+</div></section>{% endif %}
+
+<section class="wrap"><div class="band"><div><h2>جاهز تبدأ؟</h2><p>سجّل في دقيقة واحجز أول حصة تجريبية مجاناً.</p></div>
+  <div style="display:flex;gap:10px;flex-wrap:wrap"><a class="btn chalk lg" href="/login/">ابدأ مجاناً</a>{% if PLAY_STORE_URL %}<a class="btn light lg" href="{{ PLAY_STORE_URL }}">حمّل التطبيق</a>{% endif %}</div></div></section>
+{% endblock %}

@@ -1,0 +1,29 @@
+{% extends "seo/base.html" %}{% load site_tags %}
+{% block title %}{{ t.user.full_name }} — {{ t.headline|default:"مدرس أونلاين" }} | {{ SITE_NAME }}{% endblock %}
+{% block description %}{{ t.bio|truncatechars:155 }}{% endblock %}
+{% block og_type %}profile{% endblock %}
+{% block og_title %}{{ t.user.full_name }} — {{ t.headline }}{% endblock %}
+{% block og_extra %}{% if t.user.avatar %}<meta property="og:image" content="{{ SITE_URL }}{{ t.user.avatar.url }}">{% endif %}{% endblock %}
+{% block content %}<div class="wrap">
+{% include "seo/_crumbs.html" %}
+<div class="prof">
+  <aside class="card">
+    {% if t.user.avatar %}<img class="av xl" src="{{ t.user.avatar.url }}" alt="{{ t.user.full_name }}">{% else %}<span class="av xl" aria-hidden="true">{{ t.user.full_name|initial }}</span>{% endif %}
+    <div><h1 style="font-size:22px">{{ t.user.full_name }}</h1><div class="muted">{{ t.headline }}</div><span class="verified">✓ مدرس معتمد</span></div>
+    <div class="kv"><div><b>{% if t.rating_count %}{{ t.rating_avg|floatformat:"1u" }}{% else %}—{% endif %}</b>تقييم</div><div><b>{{ t.experience_years }}</b>سنة خبرة</div><div><b>{{ answers_total }}</b>إجابة</div></div>
+    <div class="chips" style="justify-content:center">{% for s in t.subjects.all %}<a class="chip" href="{{ s.get_absolute_url }}">{{ s.name }}</a>{% endfor %}</div>
+    <a class="btn chalk" style="width:100%" href="/login/">احجز حصة تجريبية مجاناً</a>
+    {% if t.hourly_rate %}<div class="muted small">يبدأ من {{ t.hourly_rate|floatformat:0 }} ج.م للساعة</div>{% endif %}
+  </aside>
+  <div>
+    <section class="card" style="padding:26px"><h2 style="font-size:22px;margin-bottom:10px">عن {{ t.user.full_name }}</h2><p>{{ t.bio|linebreaksbr }}</p>
+      {% if t.qualifications %}<h3 style="margin:18px 0 6px">المؤهلات</h3><p class="muted">{{ t.qualifications|linebreaksbr }}</p>{% endif %}</section>
+    {% if answers %}<section style="margin-top:28px"><div class="sec-head" style="margin-bottom:14px"><h2 style="font-size:22px">إجابات {{ t.user.full_name }} في بنك الأسئلة</h2></div>
+      <div class="qlist">{% for a in answers %}<a class="qrow" href="{{ a.question.get_absolute_url }}#answer-{{ a.id }}"><div class="qstats"><div><b>{{ a.score }}</b>تصويت</div></div>
+        <div><h3>{{ a.question.title }}</h3><p>{{ a.body|truncatechars:140 }}</p><div class="meta"><span class="chip">{{ a.question.subject.name }}</span>{% if a.question.accepted_answer_id == a.id %}<span class="verified">✓ أفضل إجابة</span>{% endif %}</div></div></a>{% endfor %}</div></section>{% endif %}
+    {% if courses %}<section style="margin-top:28px"><h2 style="font-size:22px;margin-bottom:14px">كورسات {{ t.user.full_name }}</h2><div class="grid g2">{% for c in courses %}{% include "seo/_course.html" %}{% endfor %}</div></section>{% endif %}
+    {% if articles %}<section style="margin-top:28px"><h2 style="font-size:22px;margin-bottom:14px">مقالات كتبها</h2><div class="grid g2">{% for a in articles %}{% include "seo/_article.html" %}{% endfor %}</div></section>{% endif %}
+    {% if reviews %}<section style="margin-top:28px"><h2 style="font-size:22px;margin-bottom:14px">آراء الطلاب <span class="stars">★ {{ t.rating_avg|floatformat:"1u" }}</span> <span class="muted small">({{ t.rating_count }} تقييم)</span></h2>
+      <div class="grid g2">{% for r in reviews %}<div class="card"><div class="stars">{{ r.rating|stars }}</div>{% if r.comment %}<p style="margin:8px 0">{{ r.comment }}</p>{% endif %}<div class="muted small">{{ r.student.full_name }} · {{ r.created_at|date:"F Y" }}</div></div>{% endfor %}</div></section>{% endif %}
+  </div>
+</div></div>{% endblock %}

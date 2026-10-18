@@ -1,0 +1,5 @@
+{% load site_tags %}{% if page.has_other_pages %}<nav class="pager" aria-label="الصفحات">
+{% if page.has_previous %}<a href="{% qs page=page.previous_page_number %}" rel="prev">السابق</a>{% endif %}
+{% for n in page.paginator.page_range %}{% if n == page.number %}<span class="on" aria-current="page">{{ n }}</span>{% elif n > page.number|add:"-3" and n < page.number|add:"3" %}<a href="{% qs page=n %}">{{ n }}</a>{% endif %}{% endfor %}
+{% if page.has_next %}<a href="{% qs page=page.next_page_number %}" rel="next">التالي</a>{% endif %}
+</nav>{% endif %}

@@ -1,0 +1,21 @@
+{% extends "seo/base.html" %}{% load site_tags %}
+{% block title %}{% if current_subject %}أفضل مدرسين {{ current_subject.name }} أونلاين{% else %}أفضل المدرسين أونلاين لكل المواد{% endif %} | {{ SITE_NAME }}{% endblock %}
+{% block description %}{% if current_subject %}مدرسين {{ current_subject.name }} معتمدين بتقييمات الطلاب — احجز حصة تجريبية مجانية.{% else %}مدرسين معتمدين لكل المواد بتقييمات حقيقية من الطلاب — اختار مدرسك واحجز حصة تجريبية مجانية.{% endif %}{% endblock %}
+{% block canonical %}{{ SITE_URL }}/teachers/{% if current_subject %}?subject={{ current_subject.slug }}{% endif %}{% endblock %}
+{% block content %}<div class="wrap">
+{% include "seo/_crumbs.html" %}
+<header class="phead"><h1>{% if current_subject %}مدرسين {{ current_subject.name }}{% else %}كل المدرسين{% endif %}</h1>
+  <p>كل المدرسين معتمدين من الإدارة، والتقييمات من طلاب حضروا معاهم فعلاً.</p></header>
+<div class="filters">
+  <a class="chip {% if not current_subject %}on{% endif %}" href="/teachers/">الكل</a>
+  {% for s in subjects %}<a class="chip {% if current_subject.id == s.id %}on{% endif %}" href="{% qs subject=s.slug %}">{{ s.name }}</a>{% endfor %}
+</div>
+<form class="filters" method="get">{% if current_subject %}<input type="hidden" name="subject" value="{{ current_subject.slug }}">{% endif %}
+  <select name="gender" aria-label="النوع" onchange="this.form.submit()"><option value="">مدرس أو مدرسة</option><option value="male" {% if request.GET.gender == "male" %}selected{% endif %}>مدرس</option><option value="female" {% if request.GET.gender == "female" %}selected{% endif %}>مدرسة</option></select>
+  <select name="sort" aria-label="الترتيب" onchange="this.form.submit()"><option value="">الأعلى تقييماً</option><option value="exp" {% if request.GET.sort == "exp" %}selected{% endif %}>الأكثر خبرة</option><option value="price" {% if request.GET.sort == "price" %}selected{% endif %}>الأقل سعراً</option></select>
+  {% if term %}<span class="chip on">بحث: {{ term }}</span> <a href="{% qs q='' %}">مسح</a>{% endif %}
+  <span class="sep"></span><span class="muted small">{{ page.paginator.count }} مدرس</span>
+</form>
+{% if page.object_list %}<div class="grid g3">{% for t in page %}{% include "seo/_teacher.html" %}{% endfor %}</div>{% else %}<div class="empty"><b>مفيش نتايج</b>جرّب مادة تانية أو امسح الفلاتر.</div>{% endif %}
+{% include "seo/_pager.html" %}
+</div>{% endblock %}

@@ -1,0 +1,67 @@
+{% load static site_tags %}<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}{{ SITE_NAME }} — دروس أونلاين لكل المواد مع أفضل المدرسين{% endblock %}</title>
+<meta name="description" content="{% block description %}حصص لايف فردية وكورسات مسجلة وبنك أسئلة وأجوبة لكل المواد والمراحل، مع مدرسين معتمدين وتقرير بعد كل حصة.{% endblock %}">
+{% if noindex %}<meta name="robots" content="noindex, follow">{% else %}<meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1">{% endif %}
+<link rel="canonical" href="{% block canonical %}{{ CANONICAL }}{% endblock %}">
+<link rel="alternate" hreflang="ar" href="{{ CANONICAL }}">
+<link rel="alternate" type="application/rss+xml" title="{{ SITE_NAME }} — المدونة" href="/blog/feed/">
+<meta property="og:locale" content="ar_EG">
+<meta property="og:type" content="{% block og_type %}website{% endblock %}">
+<meta property="og:site_name" content="{{ SITE_NAME }}">
+<meta property="og:title" content="{% block og_title %}{{ SITE_NAME }}{% endblock %}">
+<meta property="og:description" content="{% block og_description %}دروس أونلاين لكل المواد مع أفضل المدرسين{% endblock %}">
+<meta property="og:url" content="{{ CANONICAL }}">
+{% block og_extra %}{% endblock %}
+<meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#0A4D44">
+<link rel="icon" href="{% static 'img/logo.svg' %}" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{% static 'css/site.css' %}">
+{% if SITE_SCHEMA %}<script type="application/ld+json">{{ SITE_SCHEMA|safe }}</script>{% endif %}
+{% for s in schemas %}<script type="application/ld+json">{{ s|safe }}</script>
+{% endfor %}
+</head>
+<body>
+<a class="skip" href="#main">انتقل للمحتوى</a>
+<header class="hdr"><div class="wrap">
+  <a class="logo" href="/" aria-label="{{ SITE_NAME }} — الرئيسية"><i>ع</i>{{ SITE_NAME }}</a>
+  <nav class="nav" aria-label="القائمة الرئيسية">
+    <a href="/subjects/" class="{% if NAV == 'subjects' %}on{% endif %}">المواد</a>
+    <a href="/teachers/" class="{% if NAV == 'teachers' %}on{% endif %}">المدرسين</a>
+    <a href="/courses/" class="{% if NAV == 'courses' %}on{% endif %}">الكورسات</a>
+    <a href="/questions/" class="{% if NAV == 'questions' %}on{% endif %}">الأسئلة والأجوبة</a>
+    <a href="/blog/" class="{% if NAV == 'blog' %}on{% endif %}">المدونة</a>
+  </nav>
+  <form class="hsearch" action="/search/" role="search"><label class="sr" for="hq">ابحث</label>
+    <input id="hq" name="q" placeholder="ابحث عن مدرس، سؤال، درس…" value="{{ term|default:'' }}"><button aria-label="بحث">⌕</button></form>
+  <div class="acts"><a class="btn ghost sm" href="/login/">دخول</a><a class="btn sm" href="/login/">ابدأ مجاناً</a></div>
+  <details class="menu"><summary aria-label="القائمة">☰</summary><div class="drawer">
+    <form action="/search/" class="hsearch" style="display:block;margin-bottom:8px"><input name="q" placeholder="ابحث…" style="width:100%"></form>
+    <a href="/subjects/">المواد</a><a href="/teachers/">المدرسين</a><a href="/courses/">الكورسات</a>
+    <a href="/questions/">الأسئلة والأجوبة</a><a href="/blog/">المدونة</a><a href="/login/">تسجيل الدخول</a></div></details>
+</div></header>
+
+<main id="main">{% block content %}{% endblock %}</main>
+
+<footer class="ftr"><div class="wrap">
+  <div class="cols">
+    <div><div class="logo"><i>ع</i>{{ SITE_NAME }}</div>
+      <p>منصة تعليم أونلاين لكل المواد: حصص لايف فردية مع مدرسين معتمدين، كورسات مسجلة، وبنك أسئلة وأجوبة مفتوح للكل.</p>
+      {% if SUPPORT_PHONE %}<p>للتواصل: <span dir="ltr">{{ SUPPORT_PHONE }}</span></p>{% endif %}</div>
+    <div><h4>المواد</h4><ul>{% for s in NAV_SUBJECTS|slice:":7" %}<li><a href="/subjects/{{ s.slug }}/">مدرس {{ s.name }}</a></li>{% endfor %}</ul></div>
+    <div><h4>اسأل واتعلم</h4><ul>{% for s in NAV_SUBJECTS|slice:":5" %}<li><a href="/questions/subject/{{ s.slug }}/">أسئلة {{ s.name }}</a></li>{% endfor %}
+      <li><a href="/blog/">المدونة</a></li></ul></div>
+    <div><h4>المنصة</h4><ul><li><a href="/teachers/">كل المدرسين</a></li><li><a href="/courses/">الكورسات</a></li>
+      <li><a href="/p/about/">من نحن</a></li><li><a href="/p/terms/">الشروط والأحكام</a></li><li><a href="/p/privacy/">سياسة الخصوصية</a></li>
+      <li><a href="/login/">انضم كمدرس</a></li></ul></div>
+  </div>
+  <div class="bottom"><span>© {% now "Y" %} {{ SITE_NAME }}</span><span><a href="/sitemap.xml">خريطة الموقع</a> · <a href="/blog/feed/">RSS</a></span></div>
+</div></footer>
+{% block scripts %}{% endblock %}
+</body>
+</html>

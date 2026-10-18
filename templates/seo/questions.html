@@ -1,0 +1,30 @@
+{% extends "seo/base.html" %}{% load site_tags %}
+{% block title %}{% if subject %}أسئلة {{ subject.name }} وإجاباتها من المدرسين{% else %}الأسئلة والأجوبة — اسأل والمدرسين يردوا{% endif %} | {{ SITE_NAME }}{% endblock %}
+{% block description %}{% if subject %}أسئلة طلاب في {{ subject.name }} بإجابات مدرسين متخصصين ومعتمدين — اسأل سؤالك مجاناً.{% else %}بنك أسئلة وأجوبة لكل المواد: اسأل سؤالك مجاناً ومدرسين متخصصين يردوا عليك، وشوف آلاف الإجابات الجاهزة.{% endif %}{% endblock %}
+{% block canonical %}{{ SITE_URL }}{% if subject %}/questions/subject/{{ subject.slug }}/{% else %}/questions/{% endif %}{% endblock %}
+{% block content %}<div class="wrap">
+{% include "seo/_crumbs.html" %}
+<header class="phead" style="display:flex;justify-content:space-between;gap:20px;align-items:flex-end;flex-wrap:wrap">
+  <div><h1>{% if subject %}أسئلة {{ subject.name }}{% else %}الأسئلة والأجوبة{% endif %}</h1>
+    <p>اسأل أي سؤال في {% if subject %}{{ subject.name }}{% else %}أي مادة{% endif %}، ومدرسين المنصة المتخصصين هيردوا عليك. صاحب السؤال بيختار أفضل إجابة.</p></div>
+  <a class="btn chalk lg" href="/app/#/qa/ask{% if subject %}?subject={{ subject.id }}{% endif %}">اسأل سؤال</a>
+</header>
+<div class="layout"><div>
+  <form class="filters" method="get" role="search">
+    <a class="chip {% if not tab %}on{% endif %}" href="{% qs tab='' %}">الأحدث</a>
+    <a class="chip {% if tab == 'popular' %}on{% endif %}" href="{% qs tab='popular' %}">الأكثر تصويتاً</a>
+    <a class="chip {% if tab == 'unanswered' %}on{% endif %}" href="{% qs tab='unanswered' %}">من غير إجابة</a>
+    <span class="sep"></span>
+    <div class="hsearch" style="display:block"><label class="sr" for="qq">ابحث في الأسئلة</label><input id="qq" name="q" value="{{ q }}" placeholder="ابحث في الأسئلة…">{% if tab %}<input type="hidden" name="tab" value="{{ tab }}">{% endif %}</div>
+  </form>
+  {% if page.object_list %}<div class="qlist">{% for q in page %}{% include "seo/_question.html" %}{% endfor %}</div>
+  {% else %}<div class="empty"><b>مفيش أسئلة هنا لسه</b>كن أول واحد يسأل!<p style="margin-top:12px"><a class="btn" href="/app/#/qa/ask">اسأل سؤال</a></p></div>{% endif %}
+  {% include "seo/_pager.html" %}
+</div>
+<aside class="side">
+  <div class="card"><div class="kv" style="margin:0"><div><b>{{ stats.questions }}</b>سؤال</div><div><b>{{ stats.answered }}</b>متجاوب</div><div><b>{{ stats.answers }}</b>إجابة</div></div></div>
+  <div class="card"><h3>المواد</h3><ul>{% if subject %}<li><a href="/questions/">كل المواد</a></li>{% endif %}{% for s in subjects %}{% if s.n %}<li><a href="/questions/subject/{{ s.slug }}/"{% if subject.id == s.id %} style="color:var(--green);font-weight:700"{% endif %}><span>{{ s.name }}</span><span class="muted">{{ s.n }}</span></a></li>{% endif %}{% endfor %}</ul></div>
+  {% if top_teachers %}<div class="card"><h3>أكتر المدرسين إجابة</h3><ul>{% for t in top_teachers %}<li><a href="{{ t.get_absolute_url }}"><span>{{ t.user.full_name }}</span><span class="muted">{{ t.n }} إجابة</span></a></li>{% endfor %}</ul></div>{% endif %}
+  <div class="card"><h3>إزاي تسأل صح؟</h3><ul class="small" style="list-style:disc;padding-inline-start:18px;color:var(--ink-2)"><li>اكتب السؤال في عنوان واضح</li><li>قول جربت إيه ووقفت فين</li><li>اختار المادة الصح</li><li>متكتبش أرقام تليفون أو لينكات</li></ul></div>
+</aside></div>
+</div>{% endblock %}

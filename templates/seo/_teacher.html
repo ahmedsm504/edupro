@@ -1,0 +1,7 @@
+{% load site_tags %}<a class="card tcard" href="{{ t.get_absolute_url }}">
+  <div class="top">{% if t.user.avatar %}<img class="av" src="{{ t.user.avatar.url }}" alt="{{ t.user.full_name }}" width="58" height="58" loading="lazy">{% else %}<span class="av" aria-hidden="true">{{ t.user.full_name|initial }}</span>{% endif %}
+    <div><h3>{{ t.user.full_name }}</h3><div class="hl">{{ t.headline|default:"مدرس معتمد" }}</div></div></div>
+  <div class="chips">{% for s in t.subjects.all|slice:":3" %}<span class="chip">{{ s.name }}</span>{% endfor %}</div>
+  <div class="foot">{% if t.rating_count %}<span class="stars">★ {{ t.rating_avg|floatformat:"1u" }} <small>({{ t.rating_count }})</small></span>{% else %}<span class="muted">جديد</span>{% endif %}
+    <span class="muted">{{ t.experience_years }} سنة خبرة</span></div>
+</a>

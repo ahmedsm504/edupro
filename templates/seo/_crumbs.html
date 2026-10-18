@@ -1,0 +1,1 @@
+<nav class="crumbs" aria-label="مسار التنقل"><ol>{% for name, url in crumbs %}<li>{% if url %}<a href="{{ url }}">{{ name }}</a>{% else %}<span aria-current="page">{{ name }}</span>{% endif %}</li>{% endfor %}</ol></nav>

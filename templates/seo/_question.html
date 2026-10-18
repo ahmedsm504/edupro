@@ -1,0 +1,6 @@
+<a class="qrow" href="{{ q.get_absolute_url }}">
+  <div class="qstats"><div><b>{{ q.score }}</b>تصويت</div>
+    <div class="ans {% if q.accepted_answer_id %}ok{% elif q.answers_count %}has{% endif %}"><b>{{ q.answers_count }}</b>{% if q.accepted_answer_id %}✓ إجابة{% else %}إجابة{% endif %}</div></div>
+  <div><h3 dir="auto">{{ q.title }}</h3>{% if q.body %}<p dir="auto">{{ q.body|truncatechars:150 }}</p>{% endif %}
+    <div class="meta"><span class="chip">{{ q.subject.name }}</span><span>{{ q.author.full_name }}</span><time datetime="{{ q.created_at|date:'c' }}">{{ q.created_at|timesince }}</time><span>{{ q.views_count }} مشاهدة</span></div></div>
+</a>

@@ -1,0 +1,21 @@
+{% extends "seo/base.html" %}{% load site_tags %}
+{% block title %}{% if category %}{{ category.name }} — مقالات{% elif tag %}مقالات عن {{ tag.name }}{% else %}المدونة التعليمية — نصايح مذاكرة وشروحات مبسطة{% endif %} | {{ SITE_NAME }}{% endblock %}
+{% block description %}{% if category.description %}{{ category.description }}{% else %}مقالات من مدرسين المنصة: خطط مذاكرة، شروحات مبسطة، ونصايح للثانوية العامة والقرآن واللغات والبرمجة.{% endif %}{% endblock %}
+{% block content %}<div class="wrap">
+{% include "seo/_crumbs.html" %}
+<header class="phead"><h1>{{ title }}</h1><p>{% if category %}{{ category.description }}{% elif tag %}كل المقالات اللي فيها وسم «{{ tag.name }}».{% else %}مقالات بيكتبها مدرسين المنصة: خطط مذاكرة، شروحات مبسطة، ونصايح عملية.{% endif %}</p></header>
+<div class="layout"><div>
+  {% if featured %}<a class="card feat" href="{{ featured.get_absolute_url }}"><div class="cover">{% if featured.cover %}<img src="{{ featured.cover.url }}" alt="{{ featured.cover_alt|default:featured.title }}">{% else %}★ مقال مميز{% endif %}</div>
+    <div class="body"><span class="chip" style="align-self:flex-start">{{ featured.category.name }}</span><h2>{{ featured.title }}</h2><p class="muted">{{ featured.excerpt|truncatechars:200 }}</p>
+      <div class="meta"><span>{{ featured.author.full_name }}</span><span>{{ featured.reading_minutes }} دقايق قراءة</span></div></div></a>{% endif %}
+  {% if page.object_list %}<div class="grid g2">{% for a in page %}{% include "seo/_article.html" %}{% endfor %}</div>{% else %}<div class="empty"><b>مفيش مقالات هنا لسه</b><a href="/blog/">كل المقالات</a></div>{% endif %}
+  {% include "seo/_pager.html" %}
+</div>
+<aside class="side">
+  <form class="card" action="/blog/"><h3>ابحث في المدونة</h3><div class="hsearch" style="display:block"><input name="q" value="{{ q }}" placeholder="مثلاً: التكامل" style="width:100%"></div></form>
+  {% if categories %}<div class="card"><h3>التصنيفات</h3><ul>{% for c in categories %}<li><a href="{{ c.get_absolute_url }}"{% if category.id == c.id %} style="color:var(--green);font-weight:700"{% endif %}><span>{{ c.name }}</span><span class="muted">{{ c.n }}</span></a></li>{% endfor %}</ul></div>{% endif %}
+  {% if popular %}<div class="card"><h3>الأكثر قراءة</h3><ul>{% for a in popular %}<li><a href="{{ a.get_absolute_url }}">{{ a.title }}</a></li>{% endfor %}</ul></div>{% endif %}
+  {% if tags %}<div class="card"><h3>وسوم</h3><div class="chips">{% for t in tags %}<a class="chip {% if tag.id == t.id %}on{% endif %}" href="{{ t.get_absolute_url }}">#{{ t.name }}</a>{% endfor %}</div></div>{% endif %}
+  <div class="card" style="background:var(--board);color:#D6E9E4;border-color:var(--board)"><h3 style="color:#fff">عندك سؤال؟</h3><p class="small">اسأله في بنك الأسئلة والمدرسين يردوا عليك.</p><a class="btn chalk sm" href="/questions/">الأسئلة والأجوبة</a></div>
+</aside></div>
+</div>{% endblock %}

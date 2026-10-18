@@ -1,0 +1,32 @@
+{% extends "seo/base.html" %}{% load site_tags %}
+{% block title %}{% firstof subject.meta_title "مدرس "|add:subject.name|add:" أونلاين" %} — حصص لايف وأسئلة | {{ SITE_NAME }}{% endblock %}
+{% block description %}{% if subject.meta_description %}{{ subject.meta_description }}{% else %}احجز مدرس {{ subject.name }} أونلاين: حصص لايف فردية، أول حصة مجاناً، تقرير بعد كل حصة، وأسئلة {{ subject.name }} بإجابات مدرسين.{% endif %}{% endblock %}
+{% block og_title %}مدرس {{ subject.name }} أونلاين{% endblock %}
+{% block content %}<div class="wrap">
+{% include "seo/_crumbs.html" %}
+<header class="phead" style="display:flex;gap:20px;align-items:center;flex-wrap:wrap">
+  <span class="subj" style="padding:0"><span class="ico" style="--c:{{ subject.color|default:'#0B6E5F' }};width:64px;height:64px;font-size:26px">{{ subject.name|initial }}</span></span>
+  <div style="flex:1;min-width:260px"><h1>مدرس {{ subject.name }} أونلاين</h1>
+  <p>{{ subject.description|default:"حصص لايف فردية مع مدرسين متخصصين، ومتابعة بتقرير بعد كل حصة." }}</p></div>
+  <a class="btn chalk lg" href="/login/">احجز حصة تجريبية مجاناً</a>
+</header>
+
+<section style="padding-bottom:44px"><div class="sec-head"><div><h2>مدرسين {{ subject.name }}</h2></div><a class="more" href="/teachers/?subject={{ subject.slug }}">كل مدرسين {{ subject.name }}</a></div>
+  {% if teachers %}<div class="grid g3">{% for t in teachers %}{% include "seo/_teacher.html" %}{% endfor %}</div>{% else %}<div class="empty"><b>قريباً</b>بنضيف مدرسين للمادة دي.</div>{% endif %}</section>
+
+{% if questions %}<section style="padding-bottom:44px"><div class="sec-head"><div><h2>أسئلة {{ subject.name }} وإجاباتها</h2><p>أسئلة طلاب حقيقية بإجابات مدرسين المنصة.</p></div><a class="more" href="/questions/subject/{{ subject.slug }}/">كل أسئلة {{ subject.name }}</a></div>
+  <div class="qlist">{% for q in questions %}{% include "seo/_question.html" %}{% endfor %}</div></section>{% endif %}
+
+{% if courses %}<section style="padding-bottom:44px"><div class="sec-head"><h2>كورسات {{ subject.name }}</h2></div>
+  <div class="grid g3">{% for c in courses %}{% include "seo/_course.html" %}{% endfor %}</div></section>{% endif %}
+
+{% if packages %}<section style="padding-bottom:44px"><div class="sec-head"><h2>باقات الحصص</h2></div>
+  <div class="grid g3">{% for p in packages|slice:":3" %}<div class="card pkg {% if p.is_featured %}hot{% endif %}"><h3>{{ p.name }}</h3><div class="amount">{{ p.price|floatformat:0 }} <small>ج.م</small></div>
+    <ul><li>{{ p.sessions_count }} حصة × {{ p.session_duration }} دقيقة</li><li>صالحة {{ p.duration_days }} يوم</li></ul><a class="btn {% if not p.is_featured %}ghost{% endif %}" href="/login/">اشترك</a></div>{% endfor %}</div></section>{% endif %}
+
+{% if articles %}<section style="padding-bottom:44px"><div class="sec-head"><h2>مقالات عن {{ subject.name }}</h2></div>
+  <div class="grid g3">{% for a in articles %}{% include "seo/_article.html" %}{% endfor %}</div></section>{% endif %}
+
+<section style="max-width:820px;padding-bottom:20px"><h2 style="margin-bottom:16px">أسئلة شائعة عن مدرس {{ subject.name }}</h2>
+  <div class="faq">{% for q, a in faqs %}<details><summary>{{ q }}</summary><div>{{ a }}</div></details>{% endfor %}</div></section>
+</div>{% endblock %}

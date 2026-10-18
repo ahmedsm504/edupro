@@ -1,0 +1,19 @@
+{% load static %}<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#0A4D44">
+<title>{{ SITE_NAME }}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="icon" href="{% static 'img/logo.svg' %}" type="image/svg+xml">
+<link rel="stylesheet" href="{% static 'app/app.css' %}?v={{ ASSET_V }}">
+</head>
+<body>
+<div class="spinner" aria-label="جاري التحميل"></div>
+<noscript>لازم تفعّل JavaScript.</noscript>
+<script type="module" src="{% static 'app/app.js' %}?v={{ ASSET_V }}"></script>
+</body>
+</html>

@@ -1,0 +1,41 @@
+{% extends "seo/base.html" %}{% load site_tags %}
+{% block title %}{{ q.title }} — {{ q.subject.name }} | {{ SITE_NAME }}{% endblock %}
+{% block description %}{% if answers %}{{ answers.0.0.body|truncatechars:155 }}{% else %}{{ q.body|default:q.title|truncatechars:155 }}{% endif %}{% endblock %}
+{% block og_type %}article{% endblock %}
+{% block og_title %}{{ q.title }}{% endblock %}
+{% block content %}<div class="wrap">
+{% include "seo/_crumbs.html" %}
+<div class="layout"><div>
+  <article>
+    <div class="qhead">
+      <div class="vote" aria-label="التصويت"><a href="/app/#/qa/{{ q.slug }}" title="مفيد" rel="nofollow">▲</a><b>{{ q.score }}</b><a href="/app/#/qa/{{ q.slug }}" title="مش مفيد" rel="nofollow">▼</a></div>
+      <div style="flex:1;min-width:0"><h1 dir="auto" style="font-size:clamp(24px,3vw,32px);text-align:start">{{ q.title }}</h1>
+        <div class="meta" style="margin-top:8px"><a class="chip" href="/questions/subject/{{ q.subject.slug }}/">{{ q.subject.name }}</a>{% for t in q.tags.all %}<span class="chip">#{{ t.name }}</span>{% endfor %}
+          <span>سأل {{ q.author.full_name }}</span><time datetime="{{ q.created_at|date:'c' }}">{{ q.created_at|date:"j F Y" }}</time><span>{{ q.views_count }} مشاهدة</span></div></div>
+    </div>
+    {% if body_html or q.image %}<div class="qbody prose" style="font-size:17px">{{ body_html|safe }}{% if q.image %}<img src="{{ q.image.url }}" alt="{{ q.title }}">{% endif %}</div>{% endif %}
+
+    <h2 style="font-size:22px;margin:30px 0 4px">{{ answers|length }} إجابة</h2>
+    {% for a, html in answers %}
+    <div class="answer {% if a.id == q.accepted_answer_id %}accepted{% endif %}" id="answer-{{ a.id }}">
+      <div class="vote"><a href="/app/#/qa/{{ q.slug }}" title="مفيد" rel="nofollow">▲</a><b>{{ a.score }}</b><a href="/app/#/qa/{{ q.slug }}" title="مش مفيد" rel="nofollow">▼</a></div>
+      <div class="content">{% if a.id == q.accepted_answer_id %}<span class="accepted-tag">✓ أفضل إجابة</span>{% endif %}
+        <div class="prose" style="font-size:17px">{{ html|safe }}</div>{% if a.image %}<img src="{{ a.image.url }}" alt="" style="border-radius:10px;max-width:420px">{% endif %}
+        <div class="by">{% if a.author.avatar %}<img class="av sm" src="{{ a.author.avatar.url }}" alt="">{% else %}<span class="av sm" aria-hidden="true">{{ a.author.full_name|initial }}</span>{% endif %}
+          <div>{% if a.author.teacher_profile and a.author.teacher_profile.approval_status == "approved" %}<a href="{{ a.author.teacher_profile.get_absolute_url }}"><b>{{ a.author.full_name }}</b></a> <span class="verified">✓ مدرس معتمد</span>
+            <div class="muted small">{{ a.author.teacher_profile.headline }}</div>{% else %}<b>{{ a.author.full_name }}</b>{% endif %}</div>
+          <time class="muted small" style="margin-inline-start:auto" datetime="{{ a.created_at|date:'c' }}">{{ a.created_at|date:"j F Y" }}</time></div>
+      </div>
+    </div>
+    {% empty %}<div class="empty" style="margin-top:14px"><b>لسه محدش جاوب</b>المدرسين المتخصصين في {{ q.subject.name }} اتبلغوا بالسؤال.</div>
+    {% endfor %}
+    <div class="ask-box"><b>عندك إجابة أو سؤال تاني؟</b><p class="small muted" style="margin:6px 0 14px">سجّل دخول وشارك — المدرسين بيردوا بسرعة.</p>
+      <a class="btn" href="/app/#/qa/{{ q.slug }}">اكتب إجابة</a> <a class="btn ghost" href="/app/#/qa/ask?subject={{ q.subject.id }}">اسأل سؤال جديد</a></div>
+  </article>
+</div>
+<aside class="side">
+  {% if teachers %}<div class="card"><h3>مدرسين {{ q.subject.name }}</h3><ul>{% for t in teachers %}<li><a href="{{ t.get_absolute_url }}"><span>{{ t.user.full_name }}</span>{% if t.rating_count %}<span class="stars">★ {{ t.rating_avg|floatformat:"1u" }}</span>{% endif %}</a></li>{% endfor %}</ul>
+    <a class="btn chalk sm" style="margin-top:12px" href="/subjects/{{ q.subject.slug }}/">احجز حصة تجريبية</a></div>{% endif %}
+  {% if related %}<div class="card"><h3>أسئلة مشابهة</h3><ul>{% for r in related %}<li><a href="{{ r.get_absolute_url }}"><span>{{ r.title }}</span><span class="muted">{{ r.answers_count }}</span></a></li>{% endfor %}</ul></div>{% endif %}
+</aside></div>
+</div>{% endblock %}
