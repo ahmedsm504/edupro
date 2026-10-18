@@ -453,6 +453,11 @@ a.chip:hover{background:var(--green-soft);color:var(--green-2)}
   .share .btn{flex:1}
   .authorbox{padding:18px;gap:12px}
 }
+/* صور الغلاف: الصورة فوق خلفية جاهزة، فلو اتأخرت في التحميل الكارت ميبانش فاضي */
+.acard .cover,.feat .cover{position:relative;overflow:hidden}
+.acard .cover img,.feat .cover img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
+.read-cover{position:relative;background:linear-gradient(135deg,var(--board),var(--board-2))}
+.read-cover img{position:absolute;inset:0}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
 @media print{.hdr,.ftr,.side,.toc,.share,.inline-cta{display:none}}
 

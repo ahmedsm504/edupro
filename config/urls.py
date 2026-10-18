@@ -47,6 +47,14 @@ if settings.DEBUG:
 elif settings.SERVE_MEDIA:
     from django.urls import re_path
     from django.views.static import serve
-    urlpatterns.insert(0, re_path(r"^media/(?P<path>.*)$", serve, {"document_root": settings.MEDIA_ROOT}))
+
+    def media(request, path):
+        # الصور المرفوعة (أغلفة المقالات/الكورسات…): كاش أسبوع في المتصفح عشان تفتح على طول
+        r = serve(request, path, document_root=settings.MEDIA_ROOT)
+        if r.status_code == 200:
+            r["Cache-Control"] = "public, max-age=604800"
+        return r
+
+    urlpatterns.insert(0, re_path(r"^media/(?P<path>.*)$", media))
 
 handler404 = "apps.seo.views.not_found"
