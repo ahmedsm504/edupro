@@ -42,6 +42,24 @@ const NAV = {
   ],
 };
 
+// شريط سفلي للموبايل: أهم 4 صفحات + «المزيد» بيفتح القائمة كلها
+const BNAV = {
+  student: [["/home", "الرئيسية", "home"], ["/sessions", "حصصي", "calendar"], ["/courses", "الكورسات", "play"], ["/quizzes", "الامتحانات", "clipboard"]],
+  teacher: [["/home", "الرئيسية", "home"], ["/sessions", "جدولي", "calendar"], ["/t-courses", "كورساتي", "play"], ["/chat", "الشات", "chat"]],
+  supervisor: [["/home", "الرئيسية", "home"], ["/sessions", "الحصص", "calendar"], ["/assign", "التعيين", "swap"], ["/chat", "الشات", "chat"]],
+  admin: [["/home", "الرئيسية", "home"], ["/sessions", "الحصص", "calendar"], ["/users", "المستخدمين", "users"], ["/chat", "الشات", "chat"]],
+};
+
+// الجداول على الموبايل بتتحول لكروت: كل خانة بياخد اسم العمود بتاعه
+function labelTables(root) {
+  root.querySelectorAll("table.t:not([data-cards])").forEach(t => {
+    const heads = [...t.querySelectorAll("thead th")].map(th => th.textContent.trim());
+    if (!heads.length) return;
+    t.dataset.cards = "1";
+    t.querySelectorAll("tbody tr").forEach(tr => [...tr.children].forEach((td, i) => { if (heads[i]) td.dataset.label = heads[i]; }));
+  });
+}
+
 // ===================== Login =====================
 const DEMO = [
   ["الإدارة", ["admin", "supervisor"]],
@@ -217,7 +235,11 @@ function renderShell() {
       </header>
       <main class="page" id="page"></main>
     </div>
+    <nav class="bnav" aria-label="التنقل السريع">${(BNAV[u.role] || BNAV.student).map(([href, label, ic]) => html`<a href="#${href}" data-href="${href}">${raw(icon(ic, 21))}<span>${label}</span></a>`)}
+      <button type="button" id="bmore">${raw(icon("menu", 21))}<span>المزيد</span></button></nav>
   </div>`;
+  $("#bmore").onclick = () => $("#side").classList.add("open");
+  new MutationObserver(() => labelTables($("#page"))).observe($("#page"), { childList: true, subtree: true });
   $("#logout").onclick = logout;
   $("#bell").onclick = () => go("/notifications");
   $("#menu").onclick = () => $("#side").classList.toggle("open");
@@ -241,7 +263,8 @@ async function render() {
   if (!state.user) return;
   const path = currentPath();
   const m = match(path);
-  $$(".nav a").forEach(a => a.classList.toggle("on", path.split("?")[0] === a.dataset.href || (a.dataset.href !== "/home" && path.startsWith(a.dataset.href + "/"))));
+  document.body.dataset.route = path.split(/[/?]/)[1] || "";
+  $$(".nav a, .bnav a").forEach(a => a.classList.toggle("on", path.split("?")[0] === a.dataset.href || (a.dataset.href !== "/home" && path.startsWith(a.dataset.href + "/"))));
   $("#side")?.classList.remove("open");
   const page = $("#page");
   if (typeof cleanup === "function") { try { cleanup(); } catch {} }

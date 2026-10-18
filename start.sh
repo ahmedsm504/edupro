@@ -5,6 +5,7 @@
 python manage.py migrate --noinput
 python manage.py ensure_admin || true
 python manage.py seed_showcase --if-empty || true
+python manage.py sync_curricula || true
 
 if [ "${RUN_CRON:-1}" = "1" ]; then
   ( while true; do python manage.py tutoring_cron || true; sleep 300; done ) &

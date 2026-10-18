@@ -60,8 +60,17 @@ class CourseViewSet(viewsets.ReadOnlyModelViewSet):
         access = services.course_access(self.request.user, course)
         enr = access["enrollment"]
         completed = set(enr.lesson_progress.filter(completed=True).values_list("lesson_id", flat=True)) if enr else set()
+        path = services.learning_path(self.request.user, course, enr, owner=access["via"] == "owner")
         return {"request": self.request, "enrollment": enr, "access": access, "has_access": access["full"],
-                "completed_ids": completed}
+                "completed_ids": completed, "path": path}
+
+    def _check_sequence(self, course, lesson, enr, access):
+        if not course.sequential or access["via"] == "owner":
+            return
+        path = services.learning_path(self.request.user, course, enr)
+        if path["lessons"].get(lesson.id, {}).get("seq_locked"):
+            raise BusinessError("لازم تنجح في كويز الدرس اللي قبله (أو امتحان الوحدة اللي قبلها) الأول.",
+                                code="sequence_locked", status_code=403)
 
     def retrieve(self, request, *a, **kw):
         course = self.get_object()
@@ -93,6 +102,7 @@ class CourseViewSet(viewsets.ReadOnlyModelViewSet):
         if lock:
             raise BusinessError("الدرس ده للمشتركين — اشترك في الكورس عشان يتفتح.", code="lesson_locked", status_code=403)
         enr = services.ensure_enrollment(request.user, course, access)
+        self._check_sequence(course, lesson, enr, access)
         lp = LessonProgress.objects.filter(enrollment=enr, lesson=lesson).first() if enr else None
         return Response(s.LessonContentSerializer(lesson, context={
             "request": request, "position": lp.position_seconds if lp else 0, "completed": bool(lp and lp.completed)}).data)
@@ -107,6 +117,7 @@ class CourseViewSet(viewsets.ReadOnlyModelViewSet):
         if services.lesson_lock(request.user, lesson, access):
             raise BusinessError("الدرس ده مقفول.", code="lesson_locked", status_code=403)
         enr = services.ensure_enrollment(request.user, course, access)
+        self._check_sequence(course, lesson, enr, access)
         if not enr:
             if request.user.role != Roles.STUDENT or lesson.access == "paid":
                 return Response({"saved": False})  # المدرس/الإدارة بيتفرجوا بس
@@ -117,7 +128,12 @@ class CourseViewSet(viewsets.ReadOnlyModelViewSet):
         ser.is_valid(raise_exception=True)
         lp, _ = LessonProgress.objects.get_or_create(enrollment=enr, lesson=lesson)
         lp.position_seconds = ser.validated_data["position_seconds"]
-        lp.completed = lp.completed or ser.validated_data["completed"]
+        if ser.validated_data["completed"] and services.lesson_needs_quiz(lesson):
+            # الدرس اللي عليه كويز إجباري بيخلص لما الطالب ينجح في الكويز (on_quiz_result)
+            passed = services.quiz_results(request.user, [lesson.quiz_id]).get(lesson.quiz_id, {}).get("passed")
+            lp.completed = lp.completed or bool(passed)
+        else:
+            lp.completed = lp.completed or ser.validated_data["completed"]
         lp.save()
         dur = ser.validated_data.get("duration_seconds")
         if dur and not lesson.duration_seconds:
@@ -390,6 +406,22 @@ class InstructorCourseViewSet(_OwnedMixin, viewsets.ModelViewSet):
         return Response(s.EnrollmentSerializer(services.enroll(st, c, source="admin"), context={"request": request}).data)
 
 
+def _new_course_quiz(course, kind, title, max_attempts):
+    from apps.assessments.models import Quiz
+    return Quiz.objects.create(owner=course.instructor, subject=course.subject, grade=course.grade, course=course,
+                               kind=kind, title=title, pass_percent=50, max_attempts=max_attempts,
+                               show_answers_after_submit=True, is_published=False)
+
+
+def _drop_quiz(quiz):
+    """لو حد حل الكويز نخليه (عشان النتايج متضيعش) ونقفله بس، غير كده نمسحه."""
+    if quiz.attempts.exists():
+        quiz.is_published = False
+        quiz.save(update_fields=["is_published"])
+    else:
+        quiz.delete()
+
+
 @extend_schema(tags=["Instructor"])
 @schema_safe(Section)
 class InstructorSectionViewSet(_OwnedMixin, viewsets.ModelViewSet):
@@ -406,6 +438,23 @@ class InstructorSectionViewSet(_OwnedMixin, viewsets.ModelViewSet):
         if not self._is_staff() and course.instructor_id != self.request.user.id:
             raise BusinessError("الكورس ده مش بتاعك.", code="forbidden", status_code=403)
         ser.save()
+
+    @extend_schema(methods=["POST"], summary="إنشاء امتحان الوحدة (بيرجع الوحدة ومعاها exam_info) — بعدها ضيف الأسئلة من teacher/questions",
+                   request=None, responses=s.InstructorSectionSerializer)
+    @extend_schema(methods=["DELETE"], summary="شيل امتحان الوحدة", request=None, responses=s.InstructorSectionSerializer)
+    @action(detail=True, methods=["post", "delete"])
+    def exam(self, request, pk=None):
+        sec = self.get_object()
+        if request.method == "DELETE":
+            if sec.exam:
+                q = sec.exam
+                sec.exam = None
+                sec.save(update_fields=["exam"])
+                _drop_quiz(q)
+        elif not sec.exam:
+            sec.exam = _new_course_quiz(sec.course, "exam", f"امتحان {sec.title}", 3)
+            sec.save(update_fields=["exam"])
+        return Response(s.InstructorSectionSerializer(sec, context={"request": request}).data)
 
 
 @extend_schema(tags=["Instructor"])
@@ -439,4 +488,24 @@ class InstructorLessonViewSet(_OwnedMixin, viewsets.ModelViewSet):
         for f in (inst.video_file, inst.attachment):
             if f:
                 f.delete(save=False)
+        q = inst.quiz
         inst.delete()
+        if q and not q.lessons.exists():
+            _drop_quiz(q)
+
+    @extend_schema(methods=["POST"], summary="إنشاء كويز بعد الدرس (بيرجع الدرس ومعاه quiz_info) — بعدها ضيف الأسئلة من teacher/questions",
+                   request=None, responses=s.InstructorLessonSerializer)
+    @extend_schema(methods=["DELETE"], summary="شيل كويز الدرس", request=None, responses=s.InstructorLessonSerializer)
+    @action(detail=True, methods=["post", "delete"])
+    def quiz(self, request, pk=None):
+        les = self.get_object()
+        if request.method == "DELETE":
+            if les.quiz:
+                q = les.quiz
+                les.quiz = None
+                les.save(update_fields=["quiz"])
+                _drop_quiz(q)
+        elif not les.quiz:
+            les.quiz = _new_course_quiz(les.section.course, "quiz", f"كويز: {les.title}", 0)
+            les.save(update_fields=["quiz"])
+        return Response(s.InstructorLessonSerializer(les, context={"request": request}).data)

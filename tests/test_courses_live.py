@@ -217,3 +217,83 @@ class LiveRoomTests(Base):
         claims = jwt.decode(j["jwt"], key.public_key(), algorithms=["RS256"], audience="jitsi")
         self.assertEqual(claims["context"]["user"]["moderator"], "true")
         self.assertEqual(jwt.get_unverified_header(j["jwt"])["kid"], "vpaas-magic-cookie-test/abc")
+
+
+class LearningPathTests(Base):
+    """كويز بعد كل درس + امتحان آخر الوحدة، والكورس بالترتيب."""
+
+    def _quiz(self, t, url):
+        q = t.post(url).data
+        info = q.get("quiz_info") or q.get("exam_info")
+        qid = info["id"]
+        r = t.post("/api/v1/teacher/questions/", {"quiz": qid, "type": "true_false", "text": "2+2=4", "points": 1,
+                                                  "choices": [{"text": "صح", "is_correct": True}, {"text": "غلط", "is_correct": False}]},
+                   format="json")
+        self.assertEqual(r.status_code, 201, r.content)
+        self.assertEqual(t.post(f"/api/v1/teacher/quizzes/{qid}/publish/").status_code, 200)
+        return qid
+
+    def _solve(self, st, qid, right=True):
+        a = st.post(f"/api/v1/quizzes/{qid}/start/")
+        self.assertEqual(a.status_code, 200, a.content)
+        q = a.data["questions"][0]
+        pick = q["choices"][0 if right else 1]["id"]
+        st.post(f"/api/v1/attempts/{a.data['id']}/answer/", {"question": q["id"], "selected_choices": [pick]}, format="json")
+        return st.post(f"/api/v1/attempts/{a.data['id']}/submit/").data
+
+    def test_lesson_quiz_and_unit_exam_gate_progress(self):
+        c = self.course
+        Lesson.objects.filter(section__course=c).update(access="paid")
+        t = self.login(c.instructor.username)
+        sec = c.sections.order_by("order").first()
+        first, second = list(sec.lessons.order_by("order"))[:2]
+        q1 = self._quiz(t, f"/api/v1/instructor/lessons/{first.id}/quiz/")
+        ex = self._quiz(t, f"/api/v1/instructor/sections/{sec.id}/exam/")
+        st_user = self.outsider()
+        Enrollment.objects.create(student=st_user, course=c)
+        st = self.login(st_user.username)
+        d = st.get(f"/api/v1/courses/{c.slug}/").data
+        flat = [l for s in d["sections"] for l in s["lessons"]]
+        self.assertEqual(flat[0]["quiz"]["id"], q1)
+        self.assertEqual(flat[1]["lock_reason"], "sequence")
+        self.assertEqual(d["sections"][0]["exam"]["lock_reason"], "sequence")
+        r = st.get(f"/api/v1/courses/{c.slug}/lessons/{second.id}/")
+        self.assertEqual(r.data["error"]["code"], "sequence_locked")
+        # "خلّصت الدرس" مش كفاية — لازم الكويز
+        st.post(f"/api/v1/courses/{c.slug}/lessons/{first.id}/progress/", {"completed": True}, format="json")
+        self.assertFalse(st.get(f"/api/v1/courses/{c.slug}/").data["sections"][0]["lessons"][0]["completed"])
+        self.assertEqual(st.post(f"/api/v1/quizzes/{ex}/start/").data["error"]["code"], "quiz_locked")
+        res = self._solve(st, q1, right=False)
+        self.assertFalse(res["passed"])
+        self.assertEqual(self._solve(st, q1)["passed"], True)
+        d = st.get(f"/api/v1/courses/{c.slug}/").data
+        self.assertTrue(d["sections"][0]["lessons"][0]["completed"])
+        self.assertFalse(d["sections"][0]["lessons"][1]["locked"])
+        self.assertEqual(d["sections"][0]["exam"]["lock_reason"], "unit")  # لسه باقي دروس الوحدة
+        for l in sec.lessons.exclude(pk=first.pk):
+            st.post(f"/api/v1/courses/{c.slug}/lessons/{l.id}/progress/", {"completed": True}, format="json")
+        d = st.get(f"/api/v1/courses/{c.slug}/").data
+        self.assertFalse(d["sections"][0]["exam"]["locked"])
+        if len(d["sections"]) > 1:
+            self.assertEqual(d["sections"][1]["lessons"][0]["lock_reason"], "sequence")
+        before = d["progress_percent"]
+        self.assertTrue(self._solve(st, ex)["passed"])
+        d = st.get(f"/api/v1/courses/{c.slug}/").data
+        self.assertGreater(d["progress_percent"], before)
+        if len(d["sections"]) > 1:
+            self.assertFalse(d["sections"][1]["lessons"][0]["locked"])
+        # المدرس بيشوف الكويز مربوط بالدرس
+        self.assertEqual(t.get(f"/api/v1/teacher/quizzes/{q1}/").data["linked"]["lesson_id"], first.id)
+
+    def test_non_sequential_course_keeps_lessons_open(self):
+        c = self.course
+        c.sequential = False
+        c.save()
+        t = self.login(c.instructor.username)
+        first = Lesson.objects.filter(section__course=c).order_by("section__order", "order").first()
+        self._quiz(t, f"/api/v1/instructor/lessons/{first.id}/quiz/")
+        st_user = self.outsider()
+        Enrollment.objects.create(student=st_user, course=c)
+        st = self.login(st_user.username)
+        flat = [l for s in st.get(f"/api/v1/courses/{c.slug}/").data["sections"] for l in s["lessons"]]
+        self.assertTrue(all(not l["locked"] for l in flat))

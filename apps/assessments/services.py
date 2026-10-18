@@ -23,6 +23,10 @@ def can_access(student, quiz):
 
 
 def start_attempt(student, quiz: Quiz):
+    from apps.courses.services import quiz_gate
+    msg = quiz_gate(student, quiz)  # كويز درس/امتحان وحدة: لازم الدرس يكون مفتوح له
+    if msg:
+        raise BusinessError(msg, code="quiz_locked", status_code=403)
     if not can_access(student, quiz):
         raise BusinessError("الاختبار ده مش متاح لك.", code="quiz_not_available", status_code=403)
     now = timezone.now()
@@ -85,7 +89,13 @@ def submit_attempt(attempt: Attempt):
                f"{attempt.student.full_name} — {attempt.quiz.title}", {"screen": "attempt", "id": attempt.id})
     else:
         _notify_result(attempt)
+        _course_hook(attempt)
     return attempt
+
+
+def _course_hook(attempt):
+    from apps.courses.services import on_quiz_result
+    on_quiz_result(attempt)
 
 
 def _notify_result(attempt):
@@ -102,6 +112,7 @@ def finalize_manual_grading(attempt: Attempt):
     attempt.status = "graded"
     attempt.save()
     _notify_result(attempt)
+    _course_hook(attempt)
     return attempt
 
 

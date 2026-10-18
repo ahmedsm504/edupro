@@ -41,6 +41,8 @@ class Course(TimeStampedModel):
     included_in_subscription = models.BooleanField(
         default=False, help_text="الكورس يتفتح ببلاش لأي طالب عنده اشتراك حصص لايف شغال مع نفس المدرس")
     certificate_enabled = models.BooleanField(default=True, help_text="الطالب ياخد شهادة إتمام لما يخلص الكورس")
+    sequential = models.BooleanField(
+        default=True, help_text="بالترتيب: الطالب لازم ينجح في كويز الدرس عشان يفتح اللي بعده، وفي امتحان الوحدة عشان يفتح الوحدة اللي بعدها")
 
     class Meta:
         ordering = ["-published_at", "-created_at"]
@@ -65,6 +67,9 @@ class Section(TimeStampedModel):
     course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name="sections")
     title = models.CharField(max_length=200)
     order = models.PositiveIntegerField(default=0)
+    exam = models.ForeignKey("assessments.Quiz", null=True, blank=True, on_delete=models.SET_NULL, related_name="unit_sections",
+                             help_text="امتحان الوحدة — بيتفتح لما الطالب يخلّص كل دروس الوحدة")
+    exam_required = models.BooleanField(default=True, help_text="لازم ينجح في امتحان الوحدة عشان الوحدة اللي بعدها تتفتح")
 
     class Meta:
         ordering = ["order", "id"]
@@ -96,7 +101,9 @@ class Lesson(TimeStampedModel):
     attachment = models.FileField(upload_to="attachments/%Y/%m/", storage=private_storage, blank=True, null=True,
                                   help_text="ملف مرفق (ملخص/تمارين) — محمي زي الفيديو")
     content = models.TextField(blank=True, help_text="نص الدرس أو ملاحظات تحت الفيديو")
-    quiz = models.ForeignKey("assessments.Quiz", null=True, blank=True, on_delete=models.SET_NULL, related_name="lessons")
+    quiz = models.ForeignKey("assessments.Quiz", null=True, blank=True, on_delete=models.SET_NULL, related_name="lessons",
+                             help_text="كويز بعد الدرس")
+    quiz_required = models.BooleanField(default=True, help_text="الدرس ميتعلّمش إنه خلص غير لما الطالب ينجح في الكويز")
     duration_seconds = models.PositiveIntegerField(default=0)
     access = models.CharField(max_length=10, choices=ACCESS, default="paid", db_index=True,
                               help_text="مين يقدر يشوف الدرس: الكل / المسجلين / اللي دفع بس")

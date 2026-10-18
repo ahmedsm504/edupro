@@ -1,4 +1,4 @@
-import { $, $$, api, avatar, badge, busy, confirmBox, empty, fail, fmt, formData, go, html, list, modal, raw, route, score, showErrors,
+import { $, $$, api, avatar, badge, busy, confirmBox, empty, fail, fmt, formData, go, html, ico, list, modal, raw, route, score, showErrors,
   state, toast, WEEKDAYS } from "./core.js";
 import { sessionSlot, bindSessionActions } from "./views-common.js";
 
@@ -186,13 +186,28 @@ route("/quizzes", async page => {
   });
 }, { title: "الواجبات والامتحانات", roles: ["student"] });
 
+// نتيجة كويز درس/امتحان وحدة: رسالة واضحة + رجوع للكورس
+function linkedBox(a) {
+  const L = a.quiz.linked;
+  if (!L || a.student.id !== me().id) return "";
+  const back = L.role === "lesson" ? `#/courses/${L.course_slug}?lesson=${L.lesson_id}` : `#/courses/${L.course_slug}?exam=${L.section_id}`;
+  const graded = a.status === "graded";
+  const left = a.quiz.max_attempts ? a.quiz.max_attempts - a.quiz.my_attempts : null;
+  return html`<div class="callout ${!graded ? "warn" : a.passed ? "good" : "bad"} linked-res">${ico(a.passed ? "award" : "info")}<div style="flex:1">
+    <b>${!graded ? "مستني تصحيح المدرس" : a.passed ? (L.role === "lesson" ? "نجحت في كويز الدرس 🎉 الدرس اللي بعده اتفتح" : "نجحت في امتحان الوحدة 🎉 الوحدة اللي بعدها اتفتحت")
+      : `محتاج ${a.quiz.pass_percent}٪ عشان تنجح — راجع ${L.role === "lesson" ? "الدرس" : "دروس الوحدة"} وحاول تاني`}</b>
+    <div class="small">${L.course_title} · ${L.role === "lesson" ? L.lesson_title : L.section_title}${!a.passed && left != null ? ` · باقي ${left} محاولة` : ""}</div></div>
+    <div class="row wrap">${graded && !a.passed && (left == null || left > 0) ? html`<button class="btn sm" data-retry="${a.quiz.id}">حاول تاني</button>` : ""}
+      <a class="btn ${a.passed ? "" : "ghost"} sm" href="${back}">${ico("arrowPrev", 15)} ارجع للكورس</a></div></div>`;
+}
+
 route("/attempts/:id", async (page, { id }) => {
   const a = await api(`attempts/${id}/`);
   const answers = Object.fromEntries((a.answers || []).map(x => [x.question, x]));
   const solving = a.status === "in_progress" && a.student.id === me().id;
   let timer;
   if (solving) {
-    page.innerHTML = html`<div class="page-head"><div><h1>${a.quiz.title}</h1><p>${a.questions.length} سؤال · إجاباتك بتتحفظ أول بأول</p></div>
+    page.innerHTML = html`<div class="page-head"><div><h1>${a.quiz.title}</h1><p>${a.quiz.linked ? `${a.quiz.linked.course_title} · ` : ""}${a.questions.length} سؤال · النجاح من ${a.quiz.pass_percent}٪ · إجاباتك بتتحفظ أول بأول</p></div>
       ${a.remaining_seconds != null ? html`<div class="timer" id="timer"></div>` : ""}</div>
       <form id="qz">${a.questions.map((q, i) => html`<div class="q" data-q="${q.id}"><div class="row between"><b>${i + 1}. ${q.text}</b><span class="small muted">${q.points} درجة</span></div>
         ${q.image ? html`<img src="${q.image}" alt="" style="max-width:320px;margin-top:8px">` : ""}
@@ -241,6 +256,7 @@ route("/attempts/:id", async (page, { id }) => {
   const canGrade = ["teacher", "admin", "supervisor"].includes(me().role) && a.status !== "in_progress";
   page.innerHTML = html`<div class="page-head"><div><h1>${a.quiz.title}</h1><p>${a.student.full_name} · ${fmt.full(a.submitted_at || a.started_at)}</p></div>
     <div class="row">${badge(a.status)}<div class="stat" style="padding:8px 16px"><div class="v">${score(a.score, a.max_score)}</div><div class="k">${a.percent}٪ ${a.status === "graded" ? (a.passed ? "· ناجح" : "· محتاج تحسين") : ""}</div></div></div></div>
+    ${linkedBox(a)}
     ${a.status === "submitted" && !canGrade ? html`<div class="panel" style="margin-bottom:14px;background:var(--chalk-soft);border-color:#EED38A">فيه أسئلة مقالية المدرس هيصححها، والنتيجة النهائية هتوصلك في إشعار.</div>` : ""}
     ${a.teacher_feedback ? html`<div class="panel" style="margin-bottom:14px"><b>ملاحظة المدرس:</b> ${a.teacher_feedback}</div>` : ""}
     <form id="grade">${a.questions.map((q, i) => {
@@ -258,6 +274,9 @@ route("/attempts/:id", async (page, { id }) => {
     })}
     ${canGrade ? html`<div class="panel" style="margin-top:12px"><div class="field"><label>ملاحظة عامة للطالب</label><input class="input" name="teacher_feedback" value="${a.teacher_feedback || ""}"></div>
       <button class="btn" style="margin-top:12px">حفظ التصحيح</button></div>` : ""}</form>`;
+  $("[data-retry]", page)?.addEventListener("click", e => busy(e.target, async () => {
+    const n = await api(`quizzes/${e.target.dataset.retry}/start/`, { method: "POST" }); go(`/attempts/${n.id}`);
+  }));
   $("#grade").addEventListener("submit", async e => {
     e.preventDefault();
     const fd = formData(e.target);

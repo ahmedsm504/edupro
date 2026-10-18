@@ -83,9 +83,145 @@ def issue_certificate(enr: Enrollment):
     return cert
 
 
+# ============================================================ مسار التعلم: كويز بعد كل درس + امتحان آخر كل وحدة
+def quiz_results(user, quiz_ids) -> dict:
+    """{quiz_id: {attempts, best_percent, passed, pending}} للطالب ده."""
+    from apps.assessments.models import Attempt
+    res = {}
+    if not (user and user.is_authenticated and quiz_ids):
+        return res
+    for a in Attempt.objects.filter(student=user, quiz_id__in=quiz_ids).exclude(status="in_progress").select_related("quiz"):
+        r = res.setdefault(a.quiz_id, {"attempts": 0, "best_percent": None, "passed": False, "pending": False})
+        r["attempts"] += 1
+        if a.status == "graded":
+            r["best_percent"] = max(r["best_percent"] or 0, a.percent)
+            r["passed"] = r["passed"] or a.passed
+        else:
+            r["pending"] = True
+    return res
+
+
+def _course_sections(course):
+    from django.db.models import Prefetch
+    return list(course.sections.select_related("exam").prefetch_related(
+        Prefetch("lessons", queryset=Lesson.objects.select_related("quiz").order_by("order", "id"))).order_by("order", "id"))
+
+
+def _active(quiz):
+    """الكويز بيتحسب بس لو المدرس نشره وفيه أسئلة."""
+    return bool(quiz and quiz.is_published and quiz.questions.exists())
+
+
+def _qinfo(quiz, r, **extra):
+    return {"id": quiz.id, "title": quiz.title, "kind": quiz.kind, "questions_count": quiz.questions.count(),
+            "pass_percent": quiz.pass_percent, "max_attempts": quiz.max_attempts, "time_limit_minutes": quiz.time_limit_minutes,
+            "attempts": r.get("attempts", 0), "best_percent": r.get("best_percent"), "passed": r.get("passed", False),
+            "pending": r.get("pending", False), **extra}
+
+
+def learning_path(user, course, enr=None, owner=False) -> dict:
+    """
+    حالة الطالب في الكورس:
+    lessons: {lesson_id: {seq_locked, quiz}}، sections: {section_id: {exam}}، total/done (للنسبة).
+    - لو الكورس «بالترتيب»: الدرس بيتقفل لحد ما ينجح في كويز الدرس اللي قبله، والوحدة لحد ما ينجح في امتحان اللي قبلها.
+    - امتحان الوحدة بيتفتح لما كل دروس الوحدة تخلص.
+    """
+    sections = _course_sections(course)
+    quizzes = [l.quiz for s in sections for l in s.lessons.all() if l.quiz_id] + [s.exam for s in sections if s.exam_id]
+    results = quiz_results(user, [q.id for q in quizzes])
+    completed = set(enr.lesson_progress.filter(completed=True).values_list("lesson_id", flat=True)) if enr else set()
+    seq = course.sequential and not owner
+    gate = True  # كل اللي قبل كده اتعدّى؟
+    lessons, secs, total, done = {}, {}, 0, 0
+    for s in sections:
+        unit_done = True
+        for l in s.lessons.all():
+            locked = seq and not gate
+            q = l.quiz if _active(l.quiz) else None
+            r = results.get(q.id, {}) if q else {}
+            lessons[l.id] = {"seq_locked": locked,
+                             "quiz": _qinfo(q, r, required=l.quiz_required, locked=locked) if q else None}
+            total += 1
+            if l.id in completed:
+                done += 1
+            else:
+                unit_done = False
+            if seq and q and l.quiz_required and not r.get("passed"):
+                gate = False
+        ex = s.exam if _active(s.exam) else None
+        if ex:
+            r = results.get(ex.id, {})
+            reason = None if owner else ("sequence" if seq and not gate else ("unit" if not unit_done else None))
+            secs[s.id] = {"exam": _qinfo(ex, r, required=s.exam_required, locked=bool(reason), lock_reason=reason)}
+            total += 1
+            if r.get("passed"):
+                done += 1
+            if seq and s.exam_required and not r.get("passed"):
+                gate = False
+        else:
+            secs[s.id] = {"exam": None}
+    return {"lessons": lessons, "sections": secs, "total": total, "done": done}
+
+
+def lesson_needs_quiz(lesson) -> bool:
+    """الدرس ده محتاج نجاح في كويز عشان يتعلّم إنه خلص؟"""
+    return bool(lesson.quiz_required and _active(lesson.quiz))
+
+
+def quiz_gate(user, quiz):
+    """قبل ما الطالب يبدأ كويز درس/امتحان وحدة: لو مقفول يرجّع رسالة، غير كده None (وبيسجّله في الكورس لو داخل بالاشتراك)."""
+    lesson = Lesson.objects.filter(quiz=quiz).select_related("section__course").first()
+    from .models import Section
+    section = None if lesson else Section.objects.filter(exam=quiz).select_related("course").first()
+    if not (lesson or section):
+        return None
+    course = lesson.section.course if lesson else section.course
+    access = course_access(user, course)
+    if lesson and lesson_lock(user, lesson, access):
+        return "اشترك في الكورس الأول عشان تحل الكويز ده."
+    if section and not access["full"]:
+        return "اشترك في الكورس الأول عشان تمتحن امتحان الوحدة."
+    enr = ensure_enrollment(user, course, access)
+    if not enr and course.is_free and user.role == "student":
+        enr = enroll(user, course, source="free")
+    if not enr:
+        return "اشترك في الكورس الأول."
+    path = learning_path(user, course, enr, owner=access["via"] == "owner")
+    if lesson and path["lessons"].get(lesson.id, {}).get("seq_locked"):
+        return "لازم تنجح في كويز الدرس اللي قبله الأول."
+    if section:
+        ex = path["sections"].get(section.id, {}).get("exam") or {}
+        if ex.get("lock_reason") == "sequence":
+            return "لازم تنجح في امتحان الوحدة اللي قبلها الأول."
+        if ex.get("lock_reason") == "unit":
+            return "خلّص كل دروس الوحدة الأول وبعدها امتحان الوحدة هيتفتح."
+    return None
+
+
+def on_quiz_result(attempt):
+    """بعد تصحيح أي محاولة: لو نجح في كويز درس → الدرس يتعلّم إنه خلص، ونحدّث نسبة التقدم."""
+    if not attempt.passed:
+        return
+    from .models import Section
+    lessons = list(Lesson.objects.filter(quiz=attempt.quiz).select_related("section__course"))
+    courses = {l.section.course_id for l in lessons} | set(
+        Section.objects.filter(exam=attempt.quiz).values_list("course_id", flat=True))
+    for cid in courses:
+        enr = Enrollment.objects.filter(student=attempt.student, course_id=cid).first()
+        if not enr:
+            continue
+        for l in lessons:
+            if l.section.course_id == cid:
+                lp, _ = LessonProgress.objects.get_or_create(enrollment=enr, lesson=l)
+                if not lp.completed:
+                    lp.completed = True
+                    lp.save(update_fields=["completed", "updated_at"])
+        recalc_progress(enr)
+
+
 def recalc_progress(enr: Enrollment):
-    total = Lesson.objects.filter(section__course=enr.course).count()
-    done = LessonProgress.objects.filter(enrollment=enr, completed=True).count()
+    p = learning_path(enr.student, enr.course, enr)
+    total, done = p["total"], p["done"]
     enr.progress_percent = int(done * 100 / total) if total else 0
     if enr.progress_percent == 100 and not enr.completed_at:
         enr.completed_at = timezone.now()

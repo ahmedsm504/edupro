@@ -1,4 +1,4 @@
-import { $, $$, api, avatar, badge, busy, confirmBox, empty, fmt, formData, go, html, list, modal, route, score, showErrors, state, toast,
+import { $, $$, api, avatar, badge, busy, confirmBox, empty, fmt, formData, go, html, ico, list, modal, route, score, showErrors, state, toast,
   WEEKDAYS } from "./core.js";
 
 const T_ROLES = ["teacher", "admin", "supervisor"];
@@ -82,9 +82,13 @@ route("/t-quizzes", async page => {
 route("/t-quizzes/:id", async (page, { id }) => {
   const q = await api(`teacher/quizzes/${id}/`);
   const atts = list(await api(`teacher/quizzes/${id}/attempts/`));
-  page.innerHTML = html`<div class="page-head"><div><h1>${q.title}</h1><p>${KIND[q.kind]} · ${q.questions.length} سؤال · ${q.total_points} درجة</p></div>
-    <div class="row wrap">${q.is_published ? html`<span class="badge b-green">منشور</span>` : html`<button class="btn ghost" id="pub">نشر</button>`}
-      <button class="btn" id="assign">ابعته لطلاب</button></div></div>
+  const L = q.linked;
+  page.innerHTML = html`${L ? html`<div class="crumbs"><a href="#/t-courses/${L.course_id}">${L.course_title}</a>${ico("arrowNext", 14)}<span>${L.role === "lesson" ? `كويز درس: ${L.lesson_title}` : `امتحان ${L.section_title}`}</span></div>` : ""}
+    <div class="page-head"><div><h1>${q.title}</h1><p>${L ? (L.role === "lesson" ? "كويز بعد الدرس" : "امتحان آخر الوحدة") : KIND[q.kind]} · ${q.questions.length} سؤال · ${q.total_points} درجة</p></div>
+    <div class="row wrap">${q.is_published ? html`<span class="badge b-green">منشور</span>` : html`<button class="btn ${L ? "" : "ghost"}" id="pub">${L ? "انشره للطلاب" : "نشر"}</button>`}
+      <button class="btn ghost" id="qset">${ico("settings", 16)} الإعدادات</button>
+      ${L ? "" : html`<button class="btn" id="assign">ابعته لطلاب</button>`}</div></div>
+    ${L && !q.is_published ? html`<div class="callout warn" style="margin-bottom:14px">${ico("info")}<div>الطلاب مش هيشوفوا ${L.role === "lesson" ? "الكويز" : "الامتحان"} غير لما تضيف الأسئلة وتدوس «انشره للطلاب».</div></div>` : ""}
     <div class="cols"><div>
       ${q.questions.map((x, i) => html`<div class="q"><div class="row between"><b>${i + 1}. ${x.text}</b><div class="row"><span class="badge">${QTYPE[x.type]}</span><span class="small muted">${x.points} درجة</span>
         <button class="btn danger sm" data-delq="${x.id}">حذف</button></div></div>
@@ -127,7 +131,23 @@ route("/t-quizzes/:id", async (page, { id }) => {
     if (d && await confirmBox("تحذف السؤال؟", "حذف")) { await api(`teacher/questions/${d.dataset.delq}/`, { method: "DELETE" }); location.reload(); }
   });
   $("#pub")?.addEventListener("click", e => busy(e.target, async () => { await api(`teacher/quizzes/${id}/publish/`, { method: "POST" }); location.reload(); }));
-  $("#assign").onclick = async () => {
+  $("#qset").onclick = () => modal("إعدادات الاختبار", html`<form class="stack">
+      <div class="field"><label>العنوان</label><input class="input" name="title" required value="${q.title}"></div>
+      <div class="form-grid"><div class="field"><label>نسبة النجاح ٪</label><input class="input" type="number" min="1" max="100" name="pass_percent" value="${q.pass_percent}"></div>
+        <div class="field"><label>عدد المحاولات (0 = مفتوح)</label><input class="input" type="number" min="0" name="max_attempts" value="${q.max_attempts}"></div>
+        <div class="field"><label>الوقت بالدقايق (فاضي = مفتوح)</label><input class="input" type="number" min="1" name="time_limit_minutes" value="${q.time_limit_minutes || ""}"></div></div>
+      <label class="check"><input type="checkbox" name="shuffle_questions" ${q.shuffle_questions ? "checked" : ""}> رتّب الأسئلة عشوائي لكل طالب</label>
+      <label class="check"><input type="checkbox" name="show_answers_after_submit" ${q.show_answers_after_submit ? "checked" : ""}> اعرض الإجابات الصح بعد التسليم</label>
+      <div class="row end"><button class="btn">حفظ</button></div></form>`, {
+    onMount: (b, close) => b.querySelector("form").addEventListener("submit", async e => {
+      e.preventDefault(); const f = e.target;
+      const body = { title: f.title.value, pass_percent: Number(f.pass_percent.value), max_attempts: Number(f.max_attempts.value),
+        time_limit_minutes: f.time_limit_minutes.value ? Number(f.time_limit_minutes.value) : null,
+        shuffle_questions: f.shuffle_questions.checked, show_answers_after_submit: f.show_answers_after_submit.checked };
+      try { await api(`teacher/quizzes/${id}/`, { method: "PATCH", body }); close(); toast("اتحفظ", "good"); location.reload(); } catch (err) { showErrors(f, err); }
+    }),
+  });
+  $("#assign")?.addEventListener("click", async () => {
     const rows = state.user.role === "teacher" ? await api("teacher/students/") : [];
     modal("ابعته لطلاب", rows.length ? html`<form class="stack">${rows.map(r => html`<label class="row"><input type="checkbox" name="s" value="${r.student.id}" checked> ${r.student.full_name}</label>`)}
       <div class="field"><label>آخر ميعاد للتسليم</label><input class="input" type="datetime-local" name="due_at"></div><button class="btn">إرسال</button></form>` : empty("مفيش طلاب عندك دلوقتي"), {
@@ -137,7 +157,7 @@ route("/t-quizzes/:id", async (page, { id }) => {
         try { const r = await api(`teacher/quizzes/${id}/assign/`, { method: "POST", body }); close(); toast(`اتبعت لـ ${r.assigned} طالب`, "good"); location.reload(); } catch (err) { showErrors(ev.target, err); }
       }),
     });
-  };
+  });
 }, { title: "الواجب", roles: T_ROLES });
 
 route("/grading", async page => {

@@ -5,7 +5,8 @@
   <div>
     <span class="eyebrow">● أول حصة تجريبية مجاناً في كل مادة</span>
     <h1>مدرسك الخاص <mark>لكل مادة</mark>،<br>من بيتك وفي الميعاد اللي يناسبك</h1>
-    <p class="lead">حصص لايف فردية مع مدرسين معتمدين، تقرير بعد كل حصة، واجبات بتتصحح فوراً، وبنك أسئلة بيرد عليه مدرسين متخصصين.</p>
+    <p class="lead">حصص لايف فردية مع مدرسين معتمدين، كويز بعد كل درس وامتحان آخر كل وحدة، تقرير بعد كل حصة، وبنك أسئلة بيرد عليه مدرسين متخصصين.</p>
+    <ul class="curr" aria-label="المناهج"><li>المنهج المصري</li><li class="new">البكالوريا المصرية</li><li>الأزهر</li><li>لغات وقرآن وبرمجة</li></ul>
     <form class="hero-search" action="/teachers/" role="search">
       <label class="sr" for="hs">المادة</label>
       <select id="hs" name="subject"><option value="">كل المواد</option>{% for s in subjects %}<option value="{{ s.slug }}">{{ s.name }}</option>{% endfor %}</select>
@@ -20,12 +21,41 @@
     <div style="color:#A7B0CF;font-size:14px">التكامل غير المحدد — المثال التالت</div>
     <div class="who"><span class="av">✓</span><div><b style="color:#fff">سبورة ومشاركة شاشة</b><div style="font-size:13px;color:#A7B0CF">جوه الموقع — من غير أي برنامج</div></div></div>
     <div class="note"><b>تقرير الحصة:</b> فهم ممتاز للتكامل بالتعويض — الواجب: تمارين ص 40</div>
+    <div class="mini-quiz"><span class="mq-ic">✓</span><div><b>كويز الدرس: 5 من 5</b><span>الدرس اللي بعده اتفتح</span></div><span class="mq-bar"><i></i></span></div>
   </div>
 </div></section>
 
 <section class="sec"><div class="wrap">
   <div class="sec-head"><div><h2>اختار المادة</h2><p>من الابتدائي للجامعة، ومعاهم اللغات والقرآن والبرمجة.</p></div><a class="more" href="/subjects/">كل المواد</a></div>
-  <div class="grid g4">{% for s in subjects %}<a class="card subj" href="{{ s.get_absolute_url }}"><span class="ico" style="--c:{{ s.color|default:'#2450D8' }}">{{ s.name|initial }}</span><div><b>{{ s.name }}</b><span>{% if s.tc %}{{ s.tc }} مدرس{% else %}احجز حصة تجريبية{% endif %}</span></div></a>{% endfor %}</div>
+  <div class="grid g4 subjs">{% for s in subjects %}<a class="card subj" href="{{ s.get_absolute_url }}"><span class="ico" style="--c:{{ s.color|default:'#2450D8' }}">{{ s.name|initial }}</span><div><b>{{ s.name }}</b><span>{% if s.tc %}{{ s.tc }} مدرس{% else %}احجز حصة تجريبية{% endif %}</span></div></a>{% endfor %}</div>
+</div></section>
+
+<section class="sec"><div class="wrap">
+  <div class="sec-head"><div><span class="kicker-line">نظام متابعة زي المدرسة</span><h2>كل درس بعده كويز، وكل وحدة في آخرها امتحان</h2>
+    <p>زي التقييمات الأسبوعية والامتحانات الشهرية في المدارس — بس بتتصحح فوراً، وبتعرف إنت فين قبل الامتحان الحقيقي.</p></div></div>
+  <div class="feat4">
+    <div class="sfeat"><span class="fi" style="--c:#2450D8"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="6 4 20 12 6 20 6 4"/></svg></span>
+      <h3>شرح الدرس</h3><p>فيديو قصير مقسّم، أو حصة لايف مع مدرسك، وملخص تنزّله.</p></div>
+    <div class="sfeat"><span class="fi" style="--c:#7C3AED"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="m9 12 2 2 4-4"/></svg></span>
+      <h3>كويز بعد كل درس</h3><p>3–5 أسئلة سريعة. لو نجحت الدرس اللي بعده يتفتح، ولو لأ تراجع وتحاول تاني.</p></div>
+    <div class="sfeat"><span class="fi" style="--c:#D97706"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="9" r="6"/><path d="M8.5 14 7 22l5-3 5 3-1.5-8"/></svg></span>
+      <h3>امتحان آخر الوحدة</h3><p>امتحان شامل على الوحدة كلها، بوقت محدد وعدد محاولات — زي امتحان الشهر.</p></div>
+    <div class="sfeat"><span class="fi" style="--c:#16A34A"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m7 15 4-4 3 3 5-6"/></svg></span>
+      <h3>تقدّمك قدامك</h3><p>نسبة إنجاز لكل كورس، نتايج كل اختبار، وشهادة إتمام لما تخلّص.</p></div>
+  </div>
+</div></section>
+
+<section class="sec bac"><div class="wrap">
+  <div class="sec-head"><div><span class="kicker-line light">جديد · نظام البكالوريا المصرية</span><h2>جاهزين لمسارات البكالوريا</h2>
+    <p>أولى ثانوي مواد مشتركة، وبعدها بتختار مسارك. اختار صفك ومسارك وهنوصّلك بمدرسين المواد بتاعتك.</p></div>
+    <a class="btn chalk" href="/signup/">ابدأ مجاناً</a></div>
+  <div class="tracks">
+    <div class="track"><b>الطب وعلوم الحياة</b><span>تانية: فيزياء أو رياضيات</span><span>تالتة: أحياء · كيمياء</span></div>
+    <div class="track"><b>الهندسة وعلوم الحاسب</b><span>تانية: كيمياء أو برمجة</span><span>تالتة: رياضيات · فيزياء</span></div>
+    <div class="track"><b>الأعمال</b><span>تانية: محاسبة أو إدارة أعمال</span><span>تالتة: اقتصاد · رياضيات</span></div>
+    <div class="track"><b>الآداب والفنون</b><span>تانية: علم نفس أو لغة تانية</span><span>تالتة: جغرافيا · إحصاء</span></div>
+  </div>
+  <p class="small" style="margin:16px 0 0;opacity:.75">ومعاهم المواد المشتركة: عربي، لغة أجنبية، تاريخ، رياضيات، علوم متكاملة، فلسفة ومنطق.</p>
 </div></section>
 
 <section class="sec tint"><div class="wrap">

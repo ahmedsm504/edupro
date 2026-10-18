@@ -69,7 +69,7 @@ route("/courses", async (page, _p, q) => {
 
 // ============================================================ Player
 route("/courses/:slug", async (page, { slug }, q) => {
-  let c, flat, current, content, ytPlayer, saveTimer, wmTimer, lastSaved = 0;
+  let c, flat, current, content, exam = null, ytPlayer, saveTimer, wmTimer, lastSaved = 0;
   const disposers = [];
   const cleanup = () => { clearInterval(saveTimer); clearInterval(wmTimer); disposers.forEach(f => f()); disposers.length = 0; try { ytPlayer?.destroy?.(); } catch {} ytPlayer = null; };
 
@@ -80,14 +80,59 @@ route("/courses/:slug", async (page, { slug }, q) => {
 
   async function open(lessonId, { push = true } = {}) {
     cleanup();
+    exam = null;
     current = flat.find(l => String(l.id) === String(lessonId)) || flat.find(l => !l.locked && !l.completed) || flat.find(l => !l.locked) || flat[0];
     content = null;
     if (current && !current.locked) { try { content = await api(`courses/${slug}/lessons/${current.id}/`); } catch (e) { fail(e); } }
     if (push && current) history.replaceState(null, "", `#/courses/${slug}?lesson=${current.id}`);
     render();
+    if (push) scrollStage();
+  }
+  // على الموبايل المحتوى فوق والقايمة تحت: نطلع لفوق لما يفتح درس
+  const scrollStage = () => { if (innerWidth <= 980) $(".stage", page)?.scrollIntoView({ behavior: "smooth", block: "start" }); };
+
+  // امتحان آخر الوحدة
+  function openExam(sectionId, { push = true } = {}) {
+    cleanup();
+    const s = c.sections.find(x => String(x.id) === String(sectionId));
+    if (!s?.exam) return open(null);
+    exam = s; content = null; current = null;
+    if (push) history.replaceState(null, "", `#/courses/${slug}?exam=${s.id}`);
+    render();
+    if (push) scrollStage();
+  }
+
+  const startQuiz = (btn, qid) => busy(btn, async () => { const a = await api(`quizzes/${qid}/start/`, { method: "POST" }); go(`/attempts/${a.id}`); });
+
+  // كارت الكويز/الامتحان: الحالة + زرار البدء
+  function quizCard(qz, { unit = false } = {}) {
+    const student = me().role === "student";
+    const left = qz.max_attempts ? qz.max_attempts - qz.attempts : null;
+    const status = qz.passed ? html`<span class="qstate ok">${ico("check", 15)} نجحت${qz.best_percent != null ? ` · ${fmt.num(qz.best_percent)}٪` : ""}</span>`
+      : qz.pending ? html`<span class="qstate wait">${ico("clock", 15)} مستني تصحيح المدرس</span>`
+      : qz.attempts ? html`<span class="qstate bad">${ico("x", 15)} أعلى نتيجة ${fmt.num(qz.best_percent || 0)}٪ — محتاج ${fmt.num(qz.pass_percent)}٪</span>` : "";
+    const locked = qz.locked;
+    const lockMsg = unit ? (qz.lock_reason === "unit" ? "خلّص كل دروس الوحدة الأول وبعدها الامتحان هيتفتح."
+      : "خلّص دروس الوحدة وانجح في الكويزات اللي قبله الأول.") : "لازم تنجح في الكويز أو الامتحان اللي قبله الأول.";
+    return html`<div class="quiz-card ${unit ? "unit" : ""} ${qz.passed ? "passed" : ""}">
+      <span class="qi">${ico(unit ? "award" : "clipboard", 22)}</span>
+      <div class="qb"><div class="qk">${unit ? "امتحان الوحدة" : "كويز الدرس"}${qz.required ? html` <span class="req">${unit ? "مطلوب عشان تكمّل الوحدة اللي بعدها" : "مطلوب عشان تكمّل"}</span>` : ""}</div>
+        <b>${qz.title}</b>
+        <div class="meta"><span>${fmt.num(qz.questions_count)} سؤال</span><span>النجاح من ${fmt.num(qz.pass_percent)}٪</span>
+          ${qz.time_limit_minutes ? html`<span>${fmt.num(qz.time_limit_minutes)} دقيقة</span>` : ""}
+          ${left != null ? html`<span>${left > 0 ? `باقي ${fmt.num(left)} محاولة` : "خلصت المحاولات"}</span>` : ""}</div>
+        ${status}${locked ? html`<div class="small muted" style="margin-top:6px">${ico("lock", 13)} ${lockMsg}</div>` : ""}</div>
+      ${student && c.access.full ? html`<button class="btn ${qz.passed ? "ghost" : "now"}" data-quiz="${qz.id}" ${locked || (left != null && left <= 0) || qz.pending ? "disabled" : ""}>
+        ${qz.passed ? "حلّه تاني" : qz.attempts ? "حاول تاني" : unit ? "ابدأ الامتحان" : "ابدأ الكويز"}</button>`
+        : !student ? html`<a class="btn ghost sm" href="#/t-quizzes/${qz.id}">${ico("edit", 15)} الأسئلة</a>` : ""}</div>`;
   }
 
   const saveProgress = async (pos, { completed = false, duration } = {}) => {
+    if (completed && current.quiz?.required && !current.quiz.passed) {
+      // الدرس ده بيخلص بالنجاح في الكويز — نحفظ المكان بس ونفكّره
+      completed = false;
+      if (!current._quizHint) { current._quizHint = true; toast("خلصت الفيديو 👌 حل كويز الدرس عشان الدرس اللي بعده يتفتح"); }
+    }
     if (!c.is_enrolled && c.access.via !== "subscription" && !(c.is_free && me().role === "student")) return;
     if (me().role !== "student") return;
     try {
@@ -103,7 +148,19 @@ route("/courses/:slug", async (page, { slug }, q) => {
   };
 
   function stageHTML() {
+    if (exam) return html`<div class="exam-stage"><div class="es-top"><span class="es-ic">${ico("award", 30)}</span>
+        <div><div class="small" style="opacity:.8">${exam.title}</div><h2>امتحان الوحدة</h2>
+        <p>امتحان شامل على دروس الوحدة. ${exam.exam.required ? "لازم تنجح فيه عشان الوحدة اللي بعدها تتفتح." : ""}</p></div></div>
+      ${quizCard(exam.exam, { unit: true })}</div>`;
     if (!current) return html`<div class="panel">${empty("الكورس لسه مفيهوش دروس", "", "layers")}</div>`;
+    if (current.locked && current.lock_reason === "sequence") {
+      const b = blocker();
+      return html`<div class="locked-stage seq"><div><div class="lk">${ico("lock", 28)}</div>
+        <h2>الدرس ده هيتفتح بعد ما تنجح في اللي قبله</h2>
+        <p>الكورس ماشي بالترتيب: كل درس بعده كويز قصير، وكل وحدة في آخرها امتحان. انجح فيهم عشان تكمّل.</p>
+        <div class="row wrap">${b?.exam ? html`<button class="btn now lg" data-exam="${b.exam.id}">${ico("award")} روح لامتحان «${b.exam.title}»</button>`
+          : b?.lesson ? html`<button class="btn now lg" data-go="${b.lesson.id}">${ico("clipboard")} روح لكويز «${b.lesson.title}»</button>` : ""}</div></div></div></div>`;
+    }
     if (current.locked) {
       const login = current.lock_reason === "login";
       const canBuy = me().role === "student";
@@ -134,22 +191,44 @@ route("/courses/:slug", async (page, { slug }, q) => {
   }
 
   const idx = () => flat.indexOf(current);
+  // أول كويز/امتحان مطلوب لسه ما اتعدّاش قبل الدرس الحالي
+  const blocker = () => {
+    for (const sec of c.sections) {
+      for (const l of sec.lessons) {
+        if (current && l.id === current.id) return null;
+        if (l.quiz?.required && !l.quiz.passed) return { lesson: flat.find(x => x.id === l.id) };
+      }
+      if (sec.exam?.required && !sec.exam.passed) return { exam: sec };
+    }
+    return null;
+  };
   const prev = () => flat[idx() - 1], next = () => flat[idx() + 1];
+  // الخطوة اللي بعد الدرس: لو آخر درس في وحدة ليها امتحان → الامتحان، غير كده الدرس اللي بعده
+  const nextStep = () => {
+    const n = next();
+    if (current && current.section.exam && (!n || n.section.id !== current.section.id)) return { exam: current.section.id };
+    return n;
+  };
 
   function outlineHTML() {
     const total = flat.length, done = flat.filter(l => l.completed).length;
-    return html`<div class="outline-head"><div class="row between"><b>محتوى الكورس</b><span class="small muted">${fmt.num(done)} من ${fmt.num(total)} درس</span></div>
+    const exams = c.sections.filter(s => s.exam).length;
+    return html`<div class="outline-head"><div class="row between"><b>محتوى الكورس</b><span class="small muted">${fmt.num(done)} من ${fmt.num(total)} درس${exams ? ` · ${fmt.num(exams)} امتحان` : ""}</span></div>
       ${c.access.full && me().role === "student" ? html`<div class="progress"><i style="width:${c.progress_percent}%"></i></div>` : ""}</div>
       <div class="outline-body">${c.sections.map((s, si) => {
         const ls = flat.filter(l => l.section.id === s.id);
-        const open = ls.some(l => l.id === current?.id) || (!current && si === 0);
+        const open = ls.some(l => l.id === current?.id) || exam?.id === s.id || (!current && !exam && si === 0);
         const secDur = ls.reduce((a, l) => a + (l.duration_seconds || 0), 0);
         return html`<details class="osec" ${open ? "open" : ""}><summary><span>${s.title}<br><small>${fmt.num(ls.length)} درس${secDur ? ` · ${dur(secDur)}` : ""}</small></span>${raw(icon("down", 18, "chev"))}</summary>
           ${ls.map(l => html`<button class="les ${l.id === current?.id ? "on" : ""} ${l.completed ? "done" : ""} ${l.locked ? "locked" : ""}" data-l="${l.id}" aria-current="${l.id === current?.id ? "true" : "false"}">
             <span class="st">${ico(l.completed ? "check" : l.locked ? "lock" : TYPE_IC[l.type] || "video", 14)}</span>
             <span class="lt">${l.title}</span>
             <span class="lm">${l.duration_seconds ? html`<span>${dur(l.duration_seconds)}</span>` : ""}
-              ${!c.access.full && l.access !== "paid" ? html`<span class="acc-${l.access}">${ACCESS[l.access].short}</span>` : ""}</span></button>`)}</details>`;
+              ${l.quiz ? html`<span class="qtag ${l.quiz.passed ? "ok" : ""}" title="كويز بعد الدرس">${ico(l.quiz.passed ? "check" : "clipboard", 12)}كويز</span>` : ""}
+              ${!c.access.full && l.access !== "paid" ? html`<span class="acc-${l.access}">${ACCESS[l.access].short}</span>` : ""}</span></button>`)}
+          ${s.exam ? html`<button class="les exam-row ${exam?.id === s.id ? "on" : ""} ${s.exam.passed ? "done" : ""} ${s.exam.locked ? "locked" : ""}" data-exam="${s.id}">
+            <span class="st">${ico(s.exam.passed ? "check" : s.exam.locked ? "lock" : "award", 14)}</span>
+            <span class="lt">امتحان الوحدة</span><span class="lm">${s.exam.passed ? html`<span class="qtag ok">${fmt.num(s.exam.best_percent || 0)}٪</span>` : html`<span>${fmt.num(s.exam.questions_count)} سؤال</span>`}</span></button>` : ""}</details>`;
       })}</div>`;
   }
   const refreshOutline = () => { const o = $("#outline", page); if (o) o.innerHTML = outlineHTML().s; };
@@ -171,12 +250,18 @@ route("/courses/:slug", async (page, { slug }, q) => {
           ${!c.access.full && c.free_lessons_count ? html`<span class="acc-free">${ico("gift", 15)}${fmt.num(c.free_lessons_count)} درس مجاني</span>` : ""}</div></div>${head}</div>
       <div class="player"><div class="stage">
         ${stageHTML()}
+        ${exam ? html`<div class="lesson-head"><div><div class="small muted">${exam.title}</div><h2>امتحان الوحدة</h2></div>
+          <div class="lesson-actions">${(() => { const last = [...flat].reverse().find(l => l.section.id === exam.id); return last ? html`<button class="btn ghost" data-go="${last.id}">${ico("arrowPrev", 16)} آخر درس</button>` : ""; })()}
+            ${(() => { const n = flat.find(l => c.sections.indexOf(l.section) > c.sections.indexOf(exam)); return n ? html`<button class="btn ${exam.exam.passed ? "" : "ghost"}" data-go="${n.id}">الوحدة اللي بعدها ${ico("arrowNext", 16)}</button>` : ""; })()}</div></div>` : ""}
         ${current ? html`<div class="lesson-head"><div><div class="small muted">${current.section.title} · الدرس ${fmt.num(idx() + 1)} من ${fmt.num(flat.length)}</div><h2>${current.title}</h2></div>
           <div class="lesson-actions">
             ${prev() ? html`<button class="btn ghost" data-go="${prev().id}">${ico("arrowPrev", 16)} السابق</button>` : ""}
-            ${content && student && c.access.full ? html`<button class="btn ${current.completed ? "ghost" : ""}" id="done" ${current.completed ? "disabled" : ""}>${ico("check", 16)} ${current.completed ? "خلّصته" : "خلّصت الدرس"}</button>` : ""}
-            ${next() ? html`<button class="btn ${current.completed || !content ? "" : "ghost"}" data-go="${next().id}">التالي ${ico("arrowNext", 16)}</button>` : ""}</div></div>` : ""}
-        ${content ? html`<div class="panel"><div class="tabs" id="ltabs" style="margin-top:-6px">
+            ${content && student && c.access.full ? (current.quiz?.required && !current.quiz.passed
+              ? html`<a class="btn" href="#quizbox" id="toquiz">${ico("clipboard", 16)} حل كويز الدرس عشان تكمّل</a>`
+              : html`<button class="btn ${current.completed ? "ghost" : ""}" id="done" ${current.completed ? "disabled" : ""}>${ico("check", 16)} ${current.completed ? "خلّصته" : "خلّصت الدرس"}</button>`) : ""}
+            ${nextStep() ? html`<button class="btn ${current.completed || !content ? "" : "ghost"}" ${raw(nextStep().exam ? `data-exam="${nextStep().exam}"` : `data-go="${nextStep().id}"`)}>${nextStep().exam ? "امتحان الوحدة" : "التالي"} ${ico("arrowNext", 16)}</button>` : ""}</div></div>` : ""}
+        ${current && current.quiz && !current.locked ? html`<div id="quizbox">${quizCard(current.quiz)}</div>` : ""}
+        ${exam ? "" : content ? html`<div class="panel"><div class="tabs" id="ltabs" style="margin-top:-6px">
             <button class="on" data-t="about">${ico("info", 16)}عن الدرس</button>${student ? html`<button data-t="notes">${ico("note", 16)}ملاحظاتي</button>` : ""}
             <button data-t="course">${ico("book", 16)}عن الكورس</button></div><div id="lpane"></div></div>`
           : html`<div class="panel"><h2 style="margin-bottom:8px">عن الكورس</h2>${aboutCourse()}</div>`}
@@ -223,8 +308,11 @@ route("/courses/:slug", async (page, { slug }, q) => {
   }
 
   function wire() {
-    $("#outline", page).onclick = e => { const b = e.target.closest("[data-l]"); if (b) open(b.dataset.l); };
+    $("#outline", page).onclick = e => { const x = e.target.closest("[data-exam]"); if (x) return openExam(x.dataset.exam); const b = e.target.closest("[data-l]"); if (b) open(b.dataset.l); };
     page.querySelectorAll("[data-go]").forEach(b => b.onclick = () => open(b.dataset.go));
+    page.querySelectorAll(".stage [data-exam], .lesson-actions [data-exam]").forEach(b => b.onclick = () => openExam(b.dataset.exam));
+    page.querySelectorAll("[data-quiz]").forEach(b => b.onclick = () => startQuiz(b, b.dataset.quiz));
+    $("#toquiz", page)?.addEventListener("click", e => { e.preventDefault(); $("#quizbox", page)?.scrollIntoView({ behavior: "smooth", block: "center" }); });
     page.querySelectorAll("[data-buy]").forEach(b => b.onclick = () => busy(b, async () => {
       if (c.is_free) { await api(`courses/${slug}/enroll/`, { method: "POST" }); toast("اشتركت ✅ كل الدروس اتفتحت", "good"); await loadCourse(); open(current?.id); }
       else await checkout({ kind: "course", course_id: c.id }, `/courses/${slug}`);
@@ -286,7 +374,8 @@ route("/courses/:slug", async (page, { slug }, q) => {
   }
 
   await loadCourse();
-  await open(q.lesson, { push: false });
+  if (q.exam) openExam(q.exam, { push: false });
+  else await open(q.lesson, { push: false });
   return cleanup;
 }, { title: "الكورس" });
 
@@ -335,6 +424,7 @@ async function courseSettings(c) {
     <div class="field"><label>هيتعلم إيه؟ (كل نقطة في سطر)</label><textarea class="input" name="wyl" placeholder="حل مسائل القيم العظمى والصغرى&#10;فهم التكامل بالتعويض">${lines(c?.what_you_learn)}</textarea></div>
     <div class="field"><label>صورة الغلاف (16:9)</label><input type="file" name="thumbnail" accept="image/*">${c?.thumbnail ? html`<img src="${c.thumbnail}" alt="" style="width:180px;border-radius:8px;margin-top:6px">` : ""}</div>
     <label class="check"><input type="checkbox" name="included_in_subscription" ${c?.included_in_subscription ? "checked" : ""}> <span><b>افتح الكورس ببلاش لطلاب الحصص اللايف بتوعي</b><br><span class="hint">أي طالب عنده اشتراك حصص شغال معاك يشوف كل الدروس من غير ما يدفع تاني.</span></span></label>
+    <label class="check"><input type="checkbox" name="sequential" ${c ? (c.sequential ? "checked" : "") : "checked"}> <span><b>الكورس بالترتيب</b> <span class="hint">كويز بعد كل درس وامتحان آخر كل وحدة لازم ينجح فيهم عشان يكمّل</span></span></label>
     <label class="check"><input type="checkbox" name="certificate_enabled" ${c ? (c.certificate_enabled ? "checked" : "") : "checked"}> <span><b>شهادة إتمام</b> <span class="hint">لما الطالب يخلّص الكورس كله</span></span></label>
     <div class="row end"><button class="btn lg">${c ? "حفظ" : "إنشاء الكورس"}</button></div></form>`, {
     wide: true,
@@ -343,6 +433,7 @@ async function courseSettings(c) {
       const f = e.target, fd = new FormData(f);
       fd.set("included_in_subscription", f.included_in_subscription.checked ? "true" : "false");
       fd.set("certificate_enabled", f.certificate_enabled.checked ? "true" : "false");
+      fd.set("sequential", f.sequential.checked ? "true" : "false");
       if (!fd.get("thumbnail")?.size) fd.delete("thumbnail");
       if (!fd.get("old_price")) fd.delete("old_price");
       fd.delete("wyl");
@@ -379,6 +470,8 @@ route("/t-courses/:id", async (page, { id }) => {
       ${thumb}
       <div class="lname"><b>${l.title}</b><div class="meta"><span>${ico(TYPE_IC[l.type] || "video", 13)}${src}</span>${l.duration_seconds ? html`<span>${ico("clock", 13)}${dur(l.duration_seconds)}</span>` : ""}
         ${l.attachment_name ? html`<span>${ico("file", 13)}مرفق</span>` : ""}</div></div>
+      ${l.quiz_info ? html`<a class="qchip ${l.quiz_info.is_published && l.quiz_info.questions_count ? "on" : "draft"}" href="#/t-quizzes/${l.quiz_info.id}" title="كويز بعد الدرس">${ico("clipboard", 14)}كويز · ${fmt.num(l.quiz_info.questions_count)} سؤال${l.quiz_info.is_published ? "" : " · مسودة"}</a>`
+        : html`<button class="qchip add" data-addquiz="${l.id}">${ico("plus", 14)}كويز</button>`}
       <select class="acc-sel ${l.access}" data-acc="${l.id}" aria-label="مين يشوف الدرس">${Object.entries(ACCESS).map(([k, a]) => html`<option value="${k}" ${l.access === k ? "selected" : ""} ${k !== "paid" && !canFree() ? "disabled" : ""}>${a.label}</option>`)}</select>
       <span class="row lacts" style="gap:4px"><button class="btn ghost icon sm" data-edit="${l.id}" aria-label="تعديل">${ico("edit", 15)}</button>
         <button class="btn danger icon sm" data-del="${l.id}" aria-label="حذف">${ico("trash", 15)}</button></span></div>`;
@@ -409,12 +502,22 @@ route("/t-courses/:id", async (page, { id }) => {
               <button class="btn danger icon sm" data-udel="${u.id}" aria-label="حذف الوحدة">${ico("trash", 15)}</button>
               <button class="btn sm" data-add="${u.id}">${ico("plus", 15)} درس</button></span></div>
           ${u.lessons.length ? u.lessons.map((l, i) => lessonRow(l, i, u.lessons.length, u)) : html`<div class="unit-empty">الوحدة فاضية — <button class="btn ghost sm" data-add="${u.id}">${ico("plus", 14)} ضيف أول درس</button></div>`}
+          ${u.exam_info ? html`<div class="exam-line"><span class="ei">${ico("award", 18)}</span><div style="flex:1;min-width:0"><b>امتحان الوحدة</b>
+              <div class="small muted">${fmt.num(u.exam_info.questions_count)} سؤال · النجاح من ${fmt.num(u.exam_info.pass_percent)}٪${u.exam_info.is_published ? "" : " · مسودة — انشره من صفحة الأسئلة"}</div></div>
+              <label class="check small"><input type="checkbox" data-exreq="${u.id}" ${u.exam_required ? "checked" : ""}> لازم ينجح عشان يكمّل</label>
+              <a class="btn sm" href="#/t-quizzes/${u.exam_info.id}">${ico("edit", 15)} الأسئلة</a>
+              <button class="btn danger icon sm" data-delexam="${u.id}" aria-label="شيل الامتحان">${ico("trash", 15)}</button></div>`
+            : u.lessons.length ? html`<button class="exam-add" data-addexam="${u.id}">${ico("award", 16)} ضيف امتحان آخر الوحدة</button>` : ""}
         </section>`)}
         <form class="add-unit" id="addu"><div class="field" style="flex:1"><label>${units.length ? "وحدة جديدة" : "ابدأ بأول وحدة"}</label><input class="input" name="title" required placeholder="${units.length ? `الوحدة ${units.length + 1}: …` : "مثلاً: الوحدة الأولى — الأساسيات"}"></div>
           <button class="btn">${ico("plus", 16)} إضافة وحدة</button></form>
       </div>
       <aside class="cb-side">
         <div class="panel"><h3 style="margin-bottom:12px">جاهزية الكورس</h3><ul class="checklist">${c.checklist.map(x => html`<li class="${x.done ? "ok" : ""} ${x.required ? "req" : ""}"><span class="ck">${ico("check", 13)}</span><span>${x.label}${x.required ? "" : html` <span class="hint">(مستحسن)</span>`}</span></li>`)}</ul></div>
+        <div class="panel"><h3 style="margin-bottom:8px">الكويزات والامتحانات</h3>
+          <p class="small muted" style="margin:0 0 10px">ضيف كويز قصير بعد كل درس (3–5 أسئلة) وامتحان شامل آخر كل وحدة — زي نظام التقييمات الأسبوعية والشهرية في المدارس.</p>
+          <label class="check"><input type="checkbox" id="seq" ${c.sequential ? "checked" : ""}> <span><b>الكورس بالترتيب</b><br><span class="hint">الطالب ميفتحش الدرس اللي بعده غير لما ينجح في كويز الدرس، ولا الوحدة اللي بعدها غير لما ينجح في امتحان الوحدة.</span></span></label>
+          <div class="small" style="margin-top:8px">${fmt.num(lessons.filter(l => l.quiz_info).length)} من ${fmt.num(lessons.length)} درس عليهم كويز · ${fmt.num(units.filter(u => u.exam_info).length)} من ${fmt.num(units.length)} وحدة عليها امتحان</div></div>
         <div class="panel"><h3 style="margin-bottom:10px">مين يشوف إيه؟</h3>
           <div class="stack">${Object.entries(ACCESS).map(([k, a]) => html`<div class="row" style="align-items:flex-start"><span class="acc-sel ${k}" style="pointer-events:none;padding:3px 10px">${a.label} · ${fmt.num(counts[k])}</span></div><div class="hint" style="margin-top:-4px">${a.hint}</div>`)}</div>
           ${!canFree() ? html`<div class="callout warn" style="margin-top:10px">${ico("lock")}<div>الإدارة بس اللي تقدر تفتح دروس مجاناً.</div></div>` : ""}
@@ -442,9 +545,22 @@ route("/t-courses/:id", async (page, { id }) => {
       sel.className = `acc-sel ${sel.value}`; allLessons().find(l => l.id === Number(sel.dataset.acc)).access = sel.value;
       toast(`الدرس بقى «${ACCESS[sel.value].label}»`, "good");
     }));
+    $("#seq")?.addEventListener("change", e => busy(e.target, async () => {
+      await api(`instructor/courses/${id}/`, { method: "PATCH", body: { sequential: e.target.checked } }); c.sequential = e.target.checked;
+      toast(e.target.checked ? "الكورس بقى بالترتيب" : "الدروس بقت مفتوحة من غير ترتيب", "good");
+    }));
+    page.querySelectorAll("[data-exreq]").forEach(cb => cb.onchange = () => busy(cb, async () => {
+      await api(`instructor/sections/${cb.dataset.exreq}/`, { method: "PATCH", body: { exam_required: cb.checked } }); toast("اتحفظ", "good");
+    }));
     page.onclick = async e => {
       const t = e.target.closest("button"); if (!t) return;
       const d = t.dataset;
+      if (d.addquiz) return busy(t, async () => { const r = await api(`instructor/lessons/${d.addquiz}/quiz/`, { method: "POST" }); toast("اتعمل الكويز — ضيف الأسئلة وانشره", "good"); go(`/t-quizzes/${r.quiz_info.id}`); });
+      if (d.addexam) return busy(t, async () => { const r = await api(`instructor/sections/${d.addexam}/exam/`, { method: "POST" }); toast("اتعمل امتحان الوحدة — ضيف الأسئلة وانشره", "good"); go(`/t-quizzes/${r.exam_info.id}`); });
+      if (d.delexam) {
+        if (!(await confirmBox("تشيل امتحان الوحدة؟ لو فيه طلاب حلّوه نتايجهم هتفضل محفوظة.", "شيل الامتحان"))) return;
+        return busy(t, async () => { await api(`instructor/sections/${d.delexam}/exam/`, { method: "DELETE" }); load(); });
+      }
       if (d.add) return lessonEditor({ section: Number(d.add) });
       if (d.edit) return lessonEditor(allLessons().find(l => l.id === Number(d.edit)));
       if (d.del) {
@@ -499,6 +615,9 @@ route("/t-courses/:id", async (page, { id }) => {
           ${l.attachment_name ? html`<label class="check small"><input type="checkbox" name="remove_attachment"> امسح المرفق الحالي (${l.attachment_name})</label>` : ""}</div></div>
       <div class="field"><span class="label">مين يشوف الدرس ده؟</span><div class="acc-pick">${Object.entries(ACCESS).map(([k, a]) =>
         html`<label class="${k !== "paid" && !canFree() ? "dis" : ""}"><input type="radio" name="access" value="${k}" ${(l.access || "paid") === k ? "checked" : ""} ${k !== "paid" && !canFree() ? "disabled" : ""}><span class="row" style="gap:6px">${ico(a.ic, 16)}${a.label}</span><small>${a.hint}</small></label>`)}</div></div>
+      ${l.quiz_info ? html`<div class="callout good">${ico("clipboard")}<div style="flex:1"><b>عليه كويز:</b> ${l.quiz_info.title} · ${fmt.num(l.quiz_info.questions_count)} سؤال
+          <label class="check small" style="margin-top:6px"><input type="checkbox" name="quiz_required" ${l.quiz_required !== false ? "checked" : ""}> الدرس ميخلصش غير لما الطالب ينجح في الكويز</label></div>
+          <button type="button" class="btn danger sm" id="rmquiz">شيل الكويز</button></div>` : ""}
       <div class="field"><label id="clabel">ملاحظات تحت الفيديو (اختياري)</label><textarea class="input" name="content" placeholder="ملخص، قوانين، أو واجب الدرس">${l.content || ""}</textarea></div>
       <div class="row end"><button class="btn lg" id="lsave">${isNew ? "إضافة الدرس" : "حفظ التعديلات"}</button></div></form>`, {
       wide: true,
@@ -517,6 +636,10 @@ route("/t-courses/:id", async (page, { id }) => {
             : f.video_url.value && /youtu/.test(f.video_url.value) ? html`<div class="callout bad">${ico("info")}<div>الرابط ده مش مفهوم — انسخه من زرار «مشاركة» في يوتيوب.</div></div>`.s : "";
         };
         f.addEventListener("change", sync); sync();
+        $("#rmquiz", b)?.addEventListener("click", async e => {
+          if (!(await confirmBox("تشيل كويز الدرس؟", "شيل"))) return;
+          await busy(e.target, async () => { await api(`instructor/lessons/${l.id}/quiz/`, { method: "DELETE" }); close(); load(); });
+        });
         f.video_url.addEventListener("input", preview); preview();
         const drop = $("#drop", b), inp = f.video_file;
         const pick = fl => {
@@ -547,6 +670,7 @@ route("/t-courses/:id", async (page, { id }) => {
           if (type === "video" && src === "upload" && file) fd.append("video_file", file);
           if (f.attachment.files[0]) fd.append("attachment", f.attachment.files[0]);
           if (f.remove_attachment?.checked) fd.append("remove_attachment", "true");
+          if (f.quiz_required) fd.append("quiz_required", f.quiz_required.checked ? "true" : "false");
           const btn = $("#lsave", b); btn.disabled = true;
           const big = file && src === "upload";
           if (big) { $("#upwrap", b).classList.remove("hidden"); }

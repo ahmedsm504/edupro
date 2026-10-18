@@ -16,17 +16,29 @@ class LessonOutlineSerializer(serializers.ModelSerializer):
     is_preview = serializers.BooleanField(read_only=True)
     has_attachment = serializers.SerializerMethodField()
 
+    quiz = serializers.SerializerMethodField()
+
     class Meta:
         model = Lesson
         fields = ["id", "title", "type", "duration_seconds", "access", "is_preview", "order", "locked", "lock_reason",
-                  "completed", "has_attachment", "thumbnail"]
+                  "completed", "has_attachment", "thumbnail", "quiz"]
 
     def _lock(self, obj):
+        """login | payment | sequence (لازم ينجح في كويز اللي قبله) | None"""
         access = self.context.get("access") or {"full": False}
         user = self.context["request"].user if self.context.get("request") else None
         from .services import lesson_lock
         from django.contrib.auth.models import AnonymousUser
-        return lesson_lock(user or AnonymousUser(), obj, access)
+        r = lesson_lock(user or AnonymousUser(), obj, access)
+        if r:
+            return r
+        p = (self.context.get("path") or {}).get("lessons", {}).get(obj.id) or {}
+        return "sequence" if p.get("seq_locked") else None
+
+    @extend_schema_field(serializers.DictField(allow_null=True))
+    def get_quiz(self, obj):
+        """كويز بعد الدرس: {id, title, questions_count, pass_percent, passed, best_percent, attempts, required, locked} أو null"""
+        return ((self.context.get("path") or {}).get("lessons", {}).get(obj.id) or {}).get("quiz")
 
     def get_locked(self, obj) -> bool:
         return self._lock(obj) is not None
@@ -43,10 +55,16 @@ class LessonOutlineSerializer(serializers.ModelSerializer):
 
 class SectionOutlineSerializer(serializers.ModelSerializer):
     lessons = LessonOutlineSerializer(many=True, read_only=True)
+    exam = serializers.SerializerMethodField()
 
     class Meta:
         model = Section
-        fields = ["id", "title", "order", "lessons"]
+        fields = ["id", "title", "order", "lessons", "exam"]
+
+    @extend_schema_field(serializers.DictField(allow_null=True))
+    def get_exam(self, obj):
+        """امتحان الوحدة: {..., locked, lock_reason: unit (خلّص الدروس) | sequence (الوحدة اللي قبلها)} أو null"""
+        return ((self.context.get("path") or {}).get("sections", {}).get(obj.id) or {}).get("exam")
 
 
 class CourseListSerializer(serializers.ModelSerializer):
@@ -77,7 +95,7 @@ class CourseDetailSerializer(CourseListSerializer):
         fields = CourseListSerializer.Meta.fields + [
             "description", "promo_video_url", "what_you_learn", "requirements", "language", "access_days",
             "meta_description", "sections", "is_enrolled", "progress_percent", "total_duration_seconds",
-            "included_in_subscription", "certificate_enabled", "access", "free_lessons_count", "certificate_code"]
+            "included_in_subscription", "certificate_enabled", "access", "free_lessons_count", "certificate_code", "sequential"]
 
     @extend_schema_field(SectionOutlineSerializer(many=True))
     def get_sections(self, obj):
@@ -231,7 +249,7 @@ class InstructorCourseSerializer(serializers.ModelSerializer):
         model = Course
         fields = ["id", "title", "slug", "subject", "grade", "short_description", "description", "thumbnail",
                   "promo_video_url", "price", "old_price", "currency", "level", "language", "what_you_learn",
-                  "requirements", "access_days", "included_in_subscription", "certificate_enabled", "status",
+                  "requirements", "access_days", "included_in_subscription", "certificate_enabled", "sequential", "status",
                   "rejection_reason", "students_count", "rating_avg", "meta_description", "created_at", "published_at",
                   "instructor", "sections_count", "lessons_count", "checklist"]
         read_only_fields = ["slug", "status", "rejection_reason", "students_count", "rating_avg", "published_at"]
@@ -248,10 +266,24 @@ class InstructorCourseSerializer(serializers.ModelSerializer):
         ]
 
 
+def _quiz_brief(q):
+    if not q:
+        return None
+    return {"id": q.id, "title": q.title, "kind": q.kind, "questions_count": q.questions.count(),
+            "is_published": q.is_published, "pass_percent": q.pass_percent, "max_attempts": q.max_attempts}
+
+
 class InstructorSectionSerializer(serializers.ModelSerializer):
+    exam_info = serializers.SerializerMethodField()
+
     class Meta:
         model = Section
-        fields = ["id", "course", "title", "order"]
+        fields = ["id", "course", "title", "order", "exam", "exam_required", "exam_info"]
+        read_only_fields = ["exam"]
+
+    @extend_schema_field(serializers.DictField(allow_null=True))
+    def get_exam_info(self, obj):
+        return _quiz_brief(obj.exam)
 
 
 class InstructorLessonSerializer(serializers.ModelSerializer):
@@ -275,8 +307,14 @@ class InstructorLessonSerializer(serializers.ModelSerializer):
         model = Lesson
         fields = ["id", "section", "title", "type", "video_provider", "video_url", "video_id", "embed_url", "thumbnail",
                   "video_file", "has_video_file", "video_file_name", "attachment", "attachment_name", "remove_attachment",
-                  "content", "quiz", "duration_seconds", "access", "is_preview", "order"]
-        read_only_fields = ["video_provider", "video_id"]
+                  "content", "quiz", "quiz_required", "quiz_info", "duration_seconds", "access", "is_preview", "order"]
+        read_only_fields = ["video_provider", "video_id", "quiz"]
+
+    quiz_info = serializers.SerializerMethodField()
+
+    @extend_schema_field(serializers.DictField(allow_null=True))
+    def get_quiz_info(self, obj):
+        return _quiz_brief(obj.quiz)
 
     def get_has_video_file(self, obj) -> bool:
         return bool(obj.video_file)

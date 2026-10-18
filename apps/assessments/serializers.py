@@ -62,12 +62,27 @@ class QuestionWriteSerializer(serializers.ModelSerializer):
 class QuizSerializer(serializers.ModelSerializer):
     questions_count = serializers.IntegerField(source="questions.count", read_only=True)
     total_points = serializers.SerializerMethodField()
+    linked = serializers.SerializerMethodField()
 
     class Meta:
         model = Quiz
         fields = ["id", "kind", "title", "description", "subject", "grade", "course", "session", "time_limit_minutes",
                   "pass_percent", "max_attempts", "shuffle_questions", "show_answers_after_submit", "available_from",
-                  "available_until", "is_published", "is_public", "questions_count", "total_points", "created_at"]
+                  "available_until", "is_published", "is_public", "questions_count", "total_points", "created_at", "linked"]
+
+    def get_linked(self, obj) -> dict | None:
+        """لو الكويز تبع درس (كويز بعد الدرس) أو وحدة (امتحان الوحدة) في كورس."""
+        l = obj.lessons.select_related("section__course").first()
+        if l:
+            c = l.section.course
+            return {"role": "lesson", "course_id": c.id, "course_slug": c.slug, "course_title": c.title,
+                    "lesson_id": l.id, "lesson_title": l.title, "section_id": l.section_id}
+        sec = obj.unit_sections.select_related("course").first()
+        if sec:
+            c = sec.course
+            return {"role": "unit", "course_id": c.id, "course_slug": c.slug, "course_title": c.title,
+                    "section_id": sec.id, "section_title": sec.title}
+        return None
 
     def get_total_points(self, obj) -> float:
         return float(sum(q.points for q in obj.questions.all()))
@@ -109,7 +124,7 @@ class StudentQuizSerializer(QuizSerializer):
     class Meta(QuizSerializer.Meta):
         fields = ["id", "kind", "title", "description", "subject", "course", "owner", "time_limit_minutes",
                   "pass_percent", "max_attempts", "available_from", "available_until", "questions_count",
-                  "total_points", "due_at", "my_attempts", "best_score"]
+                  "total_points", "due_at", "my_attempts", "best_score", "linked"]
 
     def _student(self):
         return self.context["request"].user

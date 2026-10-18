@@ -339,6 +339,52 @@ a.chip:hover{background:var(--green-soft);color:var(--green-2)}
   .vote{min-width:40px}
   .vote a{width:34px;height:30px}
 }
+/* ---------- hero extras / نظام المتابعة / البكالوريا ---------- */
+.hero::after{content:"";position:absolute;inset:0;background-image:radial-gradient(rgba(36,80,216,.10) 1.2px,transparent 1.2px);background-size:22px 22px;mask-image:linear-gradient(180deg,#000,transparent 75%);-webkit-mask-image:linear-gradient(180deg,#000,transparent 75%);pointer-events:none;z-index:0}
+.hero .wrap{position:relative;z-index:1}
+.curr{list-style:none;margin:-8px 0 22px;padding:0;display:flex;flex-wrap:wrap;gap:8px}
+.curr li{font-size:13.5px;font-weight:600;color:var(--ink-2);background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:4px 12px}
+.curr li.new{border-color:var(--chalk-2);background:var(--chalk-soft);color:#5C4500}
+.curr li.new::before{content:"جديد";font-size:11px;font-weight:700;background:var(--chalk);color:#3A2E00;border-radius:999px;padding:0 6px;margin-inline-end:6px}
+.mini-quiz{display:flex;align-items:center;gap:12px;background:#fff;color:var(--ink);border-radius:12px;padding:10px 14px;margin-top:12px;transform:rotate(.8deg);box-shadow:0 10px 20px -12px rgba(0,0,0,.5);position:relative;overflow:hidden}
+.mini-quiz .mq-ic{width:32px;height:32px;border-radius:10px;background:#22A06B;color:#fff;display:grid;place-items:center;font-weight:700;flex:none}
+.mini-quiz b{display:block;font-size:14px}
+.mini-quiz span{font-size:12.5px;color:var(--muted)}
+.mini-quiz .mq-bar{position:absolute;inset-inline:0;bottom:0;height:4px;background:var(--line-2)}
+.mini-quiz .mq-bar i{display:block;height:100%;width:100%;background:linear-gradient(90deg,#22A06B,#4ADE80)}
+.kicker-line{display:inline-block;font-size:13px;font-weight:700;color:var(--green-2);margin-bottom:6px;letter-spacing:.01em}
+.kicker-line.light{color:var(--chalk)}
+.feat4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px;counter-reset:f}
+.sfeat{position:relative;background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);padding:22px 20px;box-shadow:var(--shadow)}
+.sfeat::after{counter-increment:f;content:counter(f);position:absolute;top:16px;inset-inline-end:18px;font-size:34px;font-weight:700;color:var(--line-2);line-height:1}
+.sfeat .fi{width:48px;height:48px;border-radius:14px;display:grid;place-items:center;color:var(--c);background:color-mix(in srgb,var(--c) 12%,#fff);margin-bottom:14px}
+.sfeat h3{font-size:17px;margin-bottom:6px}
+.sfeat p{margin:0;color:var(--muted);font-size:15px}
+.sec.bac{background:radial-gradient(700px 300px at 10% 0,rgba(244,196,48,.16),transparent 60%),linear-gradient(160deg,var(--board),#0D1944);color:#D6DAE9}
+.sec.bac h2{color:#fff}
+.sec.bac .sec-head p{color:#B8C0DA}
+.tracks{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+.track{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:var(--r-lg);padding:18px;display:grid;gap:6px}
+.track b{color:#fff;font-size:17px;margin-bottom:4px}
+.track b::before{content:"";display:block;width:28px;height:4px;border-radius:4px;background:var(--chalk);margin-bottom:12px}
+.track span{font-size:14px;color:#C3C9DD}
+@media (max-width:1080px){.feat4,.tracks{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:760px){
+  .grid.subjs{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+  .subjs .subj{flex-direction:column;align-items:flex-start;gap:10px;padding:14px}
+  .subjs .subj .ico{width:40px;height:40px;font-size:17px}
+  .subjs .subj b{font-size:15px}
+  .hero .trust{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+  .hero .trust b{font-size:22px}
+  .feat4{grid-template-columns:1fr}
+  .tracks{grid-template-columns:1fr 1fr;gap:10px}
+  .track{padding:14px}
+  .track b{font-size:15px}
+  .track span{font-size:13px}
+  .board{border-width:8px;border-bottom-width:11px;padding:20px}
+  .board .eq{font-size:22px}
+}
+@media (max-width:420px){.tracks{grid-template-columns:1fr}}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
 @media print{.hdr,.ftr,.side,.toc,.share,.inline-cta{display:none}}
 
