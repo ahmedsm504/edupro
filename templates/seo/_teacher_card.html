@@ -1,8 +1,0 @@
-<a class="card teacher" href="{{ t.get_absolute_url }}">
-  {% if t.user.avatar %}<img class="avatar" src="{{ t.user.avatar.url }}" alt="{{ t.user.full_name }}" loading="lazy" width="64" height="64">{% else %}<span class="avatar">{{ t.user.full_name|slice:":1" }}</span>{% endif %}
-  <div><h3>{{ t.user.full_name }}</h3>
-    <div class="meta">{{ t.headline|default:"مدرس معتمد" }}</div>
-    {% if t.rating_count %}<div class="stars">★ {{ t.rating_avg }} <span class="meta">({{ t.rating_count }} تقييم)</span></div>{% endif %}
-    <div class="tags">{% for s in t.subjects.all|slice:":3" %}<span class="tag">{{ s.name }}</span>{% endfor %}</div>
-  </div>
-</a>

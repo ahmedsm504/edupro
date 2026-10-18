@@ -1,6 +1,0 @@
-<a class="card course" href="{{ c.get_absolute_url }}">
-  {% if c.thumbnail %}<img src="{{ c.thumbnail.url }}" alt="{{ c.title }}" loading="lazy">{% endif %}
-  <h3>{{ c.title }}</h3>
-  <div class="meta">{{ c.instructor.full_name }} · {{ c.students_count }} طالب</div>
-  <div class="price">{% if c.price %}{{ c.price|floatformat:0 }} {{ c.currency }}{% if c.old_price %}<s>{{ c.old_price|floatformat:0 }}</s>{% endif %}{% else %}مجاني{% endif %}</div>
-</a>
