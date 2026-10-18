@@ -15,7 +15,8 @@ services:
   web:
     build: .
     env_file: .env
-    command: sh -c "python manage.py migrate --noinput && daphne -b 0.0.0.0 -p 8000 config.asgi:application"
+    environment: [RUN_CRON=0]   # المهام شغالة في خدمة cron تحت
+    command: sh -c "python manage.py migrate --noinput && sh /app/start.sh"
     volumes: [media:/app/media, private_media:/app/private_media, static:/app/staticfiles, ./secrets:/app/secrets:ro]
     ports: ["8000:8000"]
     depends_on: [db, redis]

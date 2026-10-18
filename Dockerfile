@@ -8,5 +8,5 @@ COPY . .
 # ملفات الـ CSS/JS بتتجمع وقت البناء (whitenoise بيقدّمها)
 RUN DEBUG=False SECRET_KEY=build-only python manage.py collectstatic --noinput
 EXPOSE 8000
-# Railway بيدّي البورت في $PORT
-CMD ["sh", "-c", "daphne -b 0.0.0.0 -p ${PORT:-8000} config.asgi:application"]
+# Railway بيدّي البورت في $PORT — والمهام الدورية شغالة في الخلفية (RUN_CRON=0 يوقفها)
+CMD ["sh", "/app/start.sh"]

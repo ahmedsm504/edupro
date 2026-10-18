@@ -48,12 +48,11 @@ python manage.py createsuperuser
 ```
 للتجربة بس (بيمسح كل البيانات!): `python manage.py seed_demo --reset` جوه نفس الـ `railway ssh`.
 
-## 4) خدمة المهام كل 5 دقايق (تذكير الحصص وإنهاء الاشتراكات)
+## 4) المهام كل 5 دقايق (تذكير الحصص وإنهاء الاشتراكات)
 
-1. **+ New → GitHub Repo** ← نفس الـ repo مرة تانية.
-2. في الخدمة الجديدة ← **Settings** ← خانة ملف الإعدادات (Config-as-code / Railway config file) ← اكتب `railway.cron.json`.
-   (لو مش لاقيها: حط Start Command = `python manage.py tutoring_cron` و Cron Schedule = `*/5 * * * *` وشيل الـ Healthcheck Path.)
-3. **Variables**: نفس `DATABASE_URL` و `REDIS_URL` و `SECRET_KEY` بتوع السيرفر. مش محتاجة Volume ولا دومين.
+شغالة لوحدها جوه خدمة السيرفر نفسها (`start.sh`) — مش محتاج تعمل حاجة.
+لو هتشغّل أكتر من نسخة (replica) من السيرفر: حط `RUN_CRON=0` على السيرفر واعمل خدمة تانية من نفس الـ repo
+ملف إعداداتها `railway.cron.json`، عشان التذكيرات ما تتبعتش مرتين.
 
 ## 5) دومين خاص بيك (اختياري)
 
