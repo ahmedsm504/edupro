@@ -258,6 +258,11 @@ SPECTACULAR_SETTINGS = {
     "كل الطلبات المحمية محتاجة هيدر Authorization: Bearer <access>.",
     "VERSION": "1.0.0",
     "SERVE_INCLUDE_SCHEMA": False,
+    # في الإنتاج التوثيق للأدمن بس (ادخل /admin/ الأول). API_DOCS_PUBLIC=true يفتحه للكل.
+    "SERVE_PERMISSIONS": ["rest_framework.permissions.AllowAny"] if env_bool("API_DOCS_PUBLIC", DEBUG)
+    else ["rest_framework.permissions.IsAdminUser"],
+    "SERVE_AUTHENTICATION": ["rest_framework.authentication.SessionAuthentication",
+                             "rest_framework_simplejwt.authentication.JWTAuthentication"],
     "COMPONENT_SPLIT_REQUEST": True,
     "SCHEMA_PATH_PREFIX": r"/api/v1",
     "ENUM_NAME_OVERRIDES": {

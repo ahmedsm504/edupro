@@ -1,5 +1,5 @@
 <a class="card ccard" href="{{ c.get_absolute_url }}">
-  <div class="cover" style="--c:{{ c.subject.color|default:'#0A4D44' }}">{% if c.thumbnail %}<img src="{{ c.thumbnail.url }}" alt="{{ c.title }}" loading="lazy">{% endif %}<span style="position:relative;z-index:1">{{ c.subject.name }}</span></div>
+  <div class="cover" style="--c:{{ c.subject.color|default:'#13245E' }}">{% if c.thumbnail %}<img src="{{ c.thumbnail.url }}" alt="{{ c.title }}" loading="lazy">{% endif %}<span style="position:relative;z-index:1">{{ c.subject.name }}</span></div>
   <div class="body"><h3>{{ c.title }}</h3>
     <div class="meta"><span>{{ c.instructor.full_name }}</span><span>{{ c.students_count }} طالب</span>{% if c.rating_count %}<span class="stars">★ {{ c.rating_avg|floatformat:"1u" }}</span>{% endif %}</div>
     <div class="price" style="margin-top:auto">{% if c.price %}{{ c.price|floatformat:0 }} ج.م{% if c.old_price %}<s>{{ c.old_price|floatformat:0 }}</s>{% endif %}{% else %}مجاني{% endif %}</div></div>

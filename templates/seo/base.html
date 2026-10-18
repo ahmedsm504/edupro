@@ -17,7 +17,7 @@
 <meta property="og:url" content="{{ CANONICAL }}">
 {% block og_extra %}{% endblock %}
 <meta name="twitter:card" content="summary_large_image">
-<meta name="theme-color" content="#0A4D44">
+<meta name="theme-color" content="#13245E">
 <link rel="icon" href="{% static 'img/logo.svg' %}" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -39,11 +39,11 @@
   </nav>
   <form class="hsearch" action="/search/" role="search"><label class="sr" for="hq">ابحث</label>
     <input id="hq" name="q" placeholder="ابحث عن مدرس، سؤال، درس…" value="{{ term|default:'' }}"><button aria-label="بحث">⌕</button></form>
-  <div class="acts"><a class="btn ghost sm" href="/login/">دخول</a><a class="btn sm" href="/login/">ابدأ مجاناً</a></div>
+  <div class="acts"><a class="btn ghost sm" href="/login/">دخول</a><a class="btn sm" href="/signup/">ابدأ مجاناً</a></div>
   <details class="menu"><summary aria-label="القائمة">☰</summary><div class="drawer">
     <form action="/search/" class="hsearch" style="display:block;margin-bottom:8px"><input name="q" placeholder="ابحث…" style="width:100%"></form>
     <a href="/subjects/">المواد</a><a href="/teachers/">المدرسين</a><a href="/courses/">الكورسات</a>
-    <a href="/questions/">الأسئلة والأجوبة</a><a href="/blog/">المدونة</a><a href="/login/">تسجيل الدخول</a></div></details>
+    <a href="/questions/">الأسئلة والأجوبة</a><a href="/blog/">المدونة</a><a href="/login/">تسجيل الدخول</a><a href="/signup/">حساب جديد</a><a href="/signup/?role=teacher">انضم كمدرس</a></div></details>
 </div></header>
 
 <main id="main">{% block content %}{% endblock %}</main>
@@ -58,7 +58,7 @@
       <li><a href="/blog/">المدونة</a></li></ul></div>
     <div><h4>المنصة</h4><ul><li><a href="/teachers/">كل المدرسين</a></li><li><a href="/courses/">الكورسات</a></li>
       <li><a href="/p/about/">من نحن</a></li><li><a href="/p/terms/">الشروط والأحكام</a></li><li><a href="/p/privacy/">سياسة الخصوصية</a></li>
-      <li><a href="/login/">انضم كمدرس</a></li></ul></div>
+      <li><a href="/signup/?role=teacher">انضم كمدرس</a></li></ul></div>
   </div>
   <div class="bottom"><span>© {% now "Y" %} {{ SITE_NAME }}</span><span><a href="/sitemap.xml">خريطة الموقع</a> · <a href="/blog/feed/">RSS</a></span></div>
 </div></footer>

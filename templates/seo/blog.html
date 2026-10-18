@@ -16,6 +16,6 @@
   {% if categories %}<div class="card"><h3>التصنيفات</h3><ul>{% for c in categories %}<li><a href="{{ c.get_absolute_url }}"{% if category.id == c.id %} style="color:var(--green);font-weight:700"{% endif %}><span>{{ c.name }}</span><span class="muted">{{ c.n }}</span></a></li>{% endfor %}</ul></div>{% endif %}
   {% if popular %}<div class="card"><h3>الأكثر قراءة</h3><ul>{% for a in popular %}<li><a href="{{ a.get_absolute_url }}">{{ a.title }}</a></li>{% endfor %}</ul></div>{% endif %}
   {% if tags %}<div class="card"><h3>وسوم</h3><div class="chips">{% for t in tags %}<a class="chip {% if tag.id == t.id %}on{% endif %}" href="{{ t.get_absolute_url }}">#{{ t.name }}</a>{% endfor %}</div></div>{% endif %}
-  <div class="card" style="background:var(--board);color:#D6E9E4;border-color:var(--board)"><h3 style="color:#fff">عندك سؤال؟</h3><p class="small">اسأله في بنك الأسئلة والمدرسين يردوا عليك.</p><a class="btn chalk sm" href="/questions/">الأسئلة والأجوبة</a></div>
+  <div class="card" style="background:var(--board);color:#D6DAE9;border-color:var(--board)"><h3 style="color:#fff">عندك سؤال؟</h3><p class="small">اسأله في بنك الأسئلة والمدرسين يردوا عليك.</p><a class="btn chalk sm" href="/questions/">الأسئلة والأجوبة</a></div>
 </aside></div>
 </div>{% endblock %}

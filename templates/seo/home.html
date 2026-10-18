@@ -12,20 +12,20 @@
       <label class="sr" for="hq2">اسم المدرس</label><input id="hq2" name="q" placeholder="ابحث باسم المدرس أو المادة" aria-label="بحث">
       <button class="btn">لاقي مدرسك</button>
     </form>
-    <div class="trust"><div><b>{{ stats.teachers }}+</b>مدرس معتمد</div><div><b>{{ stats.subjects }}</b>مادة</div><div><b>{{ stats.answers }}+</b>إجابة من المدرسين</div><div><b>{{ stats.courses }}</b>كورس مسجل</div></div>
+    <div class="trust">{% if stats.teachers %}<div><b>{{ stats.teachers }}</b>مدرس معتمد</div>{% endif %}<div><b>{{ stats.subjects }}</b>مادة</div>{% if stats.answers %}<div><b>{{ stats.answers }}</b>إجابة في بنك الأسئلة</div>{% endif %}{% if stats.courses %}<div><b>{{ stats.courses }}</b>كورس مسجل</div>{% else %}<div><b>مجاناً</b>إنشاء الحساب</div>{% endif %}</div>
   </div>
   <div class="board" aria-hidden="true">
     <div class="chalk-title"><span>رياضيات · ثالثة ثانوي</span><span class="live">لايف الآن</span></div>
     <div class="eq">∫ 2x dx = x² + c</div>
-    <div style="color:#A8CEC5;font-size:14px">التكامل غير المحدد — المثال التالت</div>
-    <div class="who"><span class="av">أ</span><div><b style="color:#fff">أ. أحمد سامي</b><div style="font-size:13px;color:#A8CEC5">12 سنة خبرة · ★ 4.9</div></div></div>
+    <div style="color:#A7B0CF;font-size:14px">التكامل غير المحدد — المثال التالت</div>
+    <div class="who"><span class="av">✓</span><div><b style="color:#fff">سبورة ومشاركة شاشة</b><div style="font-size:13px;color:#A7B0CF">جوه الموقع — من غير أي برنامج</div></div></div>
     <div class="note"><b>تقرير الحصة:</b> فهم ممتاز للتكامل بالتعويض — الواجب: تمارين ص 40</div>
   </div>
 </div></section>
 
 <section class="sec"><div class="wrap">
   <div class="sec-head"><div><h2>اختار المادة</h2><p>من الابتدائي للجامعة، ومعاهم اللغات والقرآن والبرمجة.</p></div><a class="more" href="/subjects/">كل المواد</a></div>
-  <div class="grid g4">{% for s in subjects %}<a class="card subj" href="{{ s.get_absolute_url }}"><span class="ico" style="--c:{{ s.color|default:'#0B6E5F' }}">{{ s.name|initial }}</span><div><b>{{ s.name }}</b><span>{{ s.tc }} مدرس</span></div></a>{% endfor %}</div>
+  <div class="grid g4">{% for s in subjects %}<a class="card subj" href="{{ s.get_absolute_url }}"><span class="ico" style="--c:{{ s.color|default:'#2450D8' }}">{{ s.name|initial }}</span><div><b>{{ s.name }}</b><span>{% if s.tc %}{{ s.tc }} مدرس{% else %}احجز حصة تجريبية{% endif %}</span></div></a>{% endfor %}</div>
 </div></section>
 
 <section class="sec tint"><div class="wrap">
@@ -54,7 +54,7 @@
   <div class="grid g3">{% for p in packages %}<div class="card pkg {% if p.is_featured %}hot{% endif %}"><h3>{{ p.name }}</h3>
     <div class="amount">{{ p.price|floatformat:0 }} <small>ج.م / شهر</small></div>
     <ul><li>{{ p.sessions_count }} حصة لايف</li><li>{{ p.session_duration }} دقيقة للحصة</li><li>تقرير بعد كل حصة</li><li>صالحة {{ p.duration_days }} يوم</li></ul>
-    <a class="btn {% if not p.is_featured %}ghost{% endif %}" href="/login/">ابدأ دلوقتي</a></div>{% endfor %}</div>
+    <a class="btn {% if not p.is_featured %}ghost{% endif %}" href="/signup/">ابدأ دلوقتي</a></div>{% endfor %}</div>
 </div></section>{% endif %}
 
 {% if courses %}<section class="sec tint"><div class="wrap">
@@ -72,11 +72,16 @@
   <div class="grid g3">{% for t in testimonials %}<figure class="card quote" style="margin:0"><p>{{ t.text }}</p><figcaption><b>{{ t.name }}</b> <span class="muted small">· {{ t.role }}</span></figcaption></figure>{% endfor %}</div>
 </div></section>{% endif %}
 
+<section class="sec"><div class="wrap"><div class="join-teach">
+  <div><span class="kicker">للمدرسين</span><h2>بتدرّس؟ انضم لفريق المنصة</h2>
+  <p>حدد مواعيدك وسعر حصتك، ودرّس لايف من فصل جاهز جوه الموقع، وارفع كورساتك المسجلة. التقديم مجاني والإدارة بتراجع طلبك خلال أيام.</p></div>
+  <a class="btn lg" href="/signup/?role=teacher">قدّم كمدرس</a></div></div></section>
+
 {% if faqs %}<section class="sec"><div class="wrap" style="max-width:820px">
   <div class="sec-head"><h2>أسئلة شائعة</h2></div>
   <div class="faq">{% for f in faqs %}<details{% if forloop.first %} open{% endif %}><summary>{{ f.question }}</summary><div>{{ f.answer }}</div></details>{% endfor %}</div>
 </div></section>{% endif %}
 
 <section class="wrap"><div class="band"><div><h2>جاهز تبدأ؟</h2><p>سجّل في دقيقة واحجز أول حصة تجريبية مجاناً.</p></div>
-  <div style="display:flex;gap:10px;flex-wrap:wrap"><a class="btn chalk lg" href="/login/">ابدأ مجاناً</a>{% if PLAY_STORE_URL %}<a class="btn light lg" href="{{ PLAY_STORE_URL }}">حمّل التطبيق</a>{% endif %}</div></div></section>
+  <div style="display:flex;gap:10px;flex-wrap:wrap"><a class="btn chalk lg" href="/signup/">ابدأ مجاناً</a>{% if PLAY_STORE_URL %}<a class="btn light lg" href="{{ PLAY_STORE_URL }}">حمّل التطبيق</a>{% endif %}</div></div></section>
 {% endblock %}

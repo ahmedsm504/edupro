@@ -12,7 +12,7 @@
     <div><h1 style="font-size:22px">{{ t.user.full_name }}</h1><div class="muted">{{ t.headline }}</div><span class="verified">✓ مدرس معتمد</span></div>
     <div class="kv"><div><b>{% if t.rating_count %}{{ t.rating_avg|floatformat:"1u" }}{% else %}—{% endif %}</b>تقييم</div><div><b>{{ t.experience_years }}</b>سنة خبرة</div><div><b>{{ answers_total }}</b>إجابة</div></div>
     <div class="chips" style="justify-content:center">{% for s in t.subjects.all %}<a class="chip" href="{{ s.get_absolute_url }}">{{ s.name }}</a>{% endfor %}</div>
-    <a class="btn chalk" style="width:100%" href="/login/">احجز حصة تجريبية مجاناً</a>
+    <a class="btn chalk" style="width:100%" href="/signup/">احجز حصة تجريبية مجاناً</a>
     {% if t.hourly_rate %}<div class="muted small">يبدأ من {{ t.hourly_rate|floatformat:0 }} ج.م للساعة</div>{% endif %}
   </aside>
   <div>

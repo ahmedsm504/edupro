@@ -37,21 +37,18 @@ git push -u origin main
 5. **Settings → Networking → Generate Domain** ← هياخد دومين زي `edupro-production.up.railway.app`.
 6. استنى النشر يخلص (الـ healthcheck على `/api/v1/health/` لازم يبقى أخضر).
 
-## 3) أول حساب أدمن
+## 3) حساب الأدمن والمحتوى الأولي
 
-أسهل طريقة: من خدمة السيرفر ← تبويب **Console** واكتب `python manage.py createsuperuser`.
-أو من جهازك بالـ CLI:
+مع كل نشر `start.sh` بيشغّل:
+- `ensure_admin`: بيعمل حساب الأدمن `admin` لو مش موجود (كلمة السر من `ADMIN_PASSWORD` لو متحط، وإلا المتفق عليها).
+  لو الحساب موجود مش بيلمسه، فغيّر كلمة السر من «حسابي» بعد أول دخول وهتفضل زي ما هي.
+- `seed_showcase --if-empty`: لو مفيش مقالات خالص بيضيف المواد والصفوف والباقات، ومقالات بصور، وأسئلة وأجوبة،
+  وأسئلة شائعة وصفحات من نحن/الشروط/الخصوصية — باسم «فريق EduPro التعليمي». **مش** بيعمل مدرسين أو طلاب أو تقييمات وهمية.
+  أسعار الباقات مبدئية — عدّلها من لوحة الإدارة.
 
-نزّل Railway CLI مرة واحدة:
-```bash
-npm i -g @railway/cli
-railway login
-railway link          # اختار المشروع وخدمة السيرفر
-railway ssh           # بيفتح terminal جوه السيرفر
-python manage.py createsuperuser
-```
+لأدمن تاني: من خدمة السيرفر ← تبويب **Console** واكتب `python manage.py createsuperuser`.
+توثيق الـ API (`/api/docs/`) في الإنتاج مقفول على الأدمن بس (ادخل `/admin/` الأول). لو عايزه مفتوح لمطور التطبيق: `API_DOCS_PUBLIC=true`.
 للتجربة بس (بيمسح كل البيانات!): `python manage.py seed_demo --reset`، ولو عايز أزرار حسابات التجربة تظهر في صفحة الدخول ضيف `SHOW_DEMO_LOGIN=true`.
-**قبل ما تفتح للناس** امسح بيانات التجربة أو غيّر كلمات السر، لأن `admin12345` معروفة.
 
 ## 4) المهام كل 5 دقايق (تذكير الحصص وإنهاء الاشتراكات)
 

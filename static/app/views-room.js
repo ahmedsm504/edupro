@@ -52,8 +52,8 @@ route("/room/:id", async (page, { id }) => {
     const opens = Date.parse(s.join_opens_at), starts = Date.parse(s.scheduled_at);
     page.innerHTML = html`${head()}
       <div class="room"><div class="room-stage"><div class="lobby"><div class="inner">
-        <div class="row" style="justify-content:center;gap:14px;margin-bottom:14px">${avatar(other, "lg")}<div style="text-align:start"><div class="small" style="color:#AFC9C2">${isTeacher ? "الطالب" : "المدرس"}</div>
-          <b style="font-size:18px;color:#fff">${other.full_name}</b><div><span class="presence ${otherHere ? "on" : ""}" id="pres" style="color:${otherHere ? "#8BE0BE" : "#AFC9C2"}"><i></i><span>${otherHere ? "دخل الغرفة" : "لسه مدخلش"}</span></span></div></div></div>
+        <div class="row" style="justify-content:center;gap:14px;margin-bottom:14px">${avatar(other, "lg")}<div style="text-align:start"><div class="small" style="color:#AEB5CA">${isTeacher ? "الطالب" : "المدرس"}</div>
+          <b style="font-size:18px;color:#fff">${other.full_name}</b><div><span class="presence ${otherHere ? "on" : ""}" id="pres" style="color:${otherHere ? "#8BE0BE" : "#AEB5CA"}"><i></i><span>${otherHere ? "دخل الغرفة" : "لسه مدخلش"}</span></span></div></div></div>
         <h2>${s.subject.name}${s.title ? ` — ${s.title}` : ""}</h2>
         <p>${fmt.date(s.scheduled_at)} · ${fmt.time(s.scheduled_at)} إلى ${fmt.time(s.ends_at)} · ${fmt.num(s.duration)} دقيقة</p>
         <div id="cd"></div>
@@ -172,7 +172,7 @@ route("/room/:id", async (page, { id }) => {
     const p = $("#pres", page); if (!p) return;
     p.classList.toggle("on", on);
     p.querySelector("span").textContent = inCall ? (on ? `${isTeacher ? "الطالب" : "المدرس"} في الغرفة` : `${isTeacher ? "الطالب" : "المدرس"} خرج من الغرفة`) : (on ? "دخل الغرفة" : "لسه مدخلش");
-    if (!inCall) p.style.color = on ? "#8BE0BE" : "#AFC9C2";
+    if (!inCall) p.style.color = on ? "#8BE0BE" : "#AEB5CA";
   }
 
   async function endSession(btn) {

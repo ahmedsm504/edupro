@@ -42,7 +42,7 @@
     {% if questions %}<section style="margin-top:12px"><h2 style="font-size:22px;margin-bottom:12px">أسئلة الطلاب في {{ a.subject.name }}</h2><div class="qlist">{% for q in questions %}{% include "seo/_question.html" %}{% endfor %}</div></section>{% endif %}
   </article>
   {% if toc %}<nav class="toc" aria-label="محتوى المقال"><h3>في المقال ده</h3><ol>{% for h in toc %}<li class="l{{ h.level }}"><a href="#{{ h.id }}">{{ h.text }}</a></li>{% endfor %}</ol>
-    <a class="btn chalk sm" style="margin-top:20px" href="/login/">احجز حصة تجريبية</a></nav>{% endif %}
+    <a class="btn chalk sm" style="margin-top:20px" href="/signup/">احجز حصة تجريبية</a></nav>{% endif %}
 </div>
 {% if related %}<section style="padding-bottom:20px"><h2 style="margin-bottom:16px">مقالات ممكن تعجبك</h2><div class="grid g3">{% for a in related %}{% include "seo/_article.html" %}{% endfor %}</div></section>{% endif %}
 </div>{% endblock %}

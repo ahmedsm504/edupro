@@ -31,7 +31,7 @@ class RegisterView(APIView):
     throttle_scope = "auth"
     throttle_classes = [AuthThrottle]
 
-    @extend_schema(summary="تسجيل حساب جديد (طالب/ولي أمر/مدرس)", request=s.RegisterSerializer,
+    @extend_schema(summary="تسجيل حساب جديد (طالب أو مدرس)", request=s.RegisterSerializer,
                    responses={201: s.AuthResponseSerializer})
     def post(self, request):
         ser = s.RegisterSerializer(data=request.data)

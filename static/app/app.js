@@ -75,7 +75,8 @@ function renderLogin() {
         <div class="err hidden" id="login-err" role="alert"></div>
         <button class="btn lg block" type="submit">دخول</button>
       </form>
-      <p class="small muted" style="margin-top:22px"><a href="/">الموقع الرئيسي</a> · <a href="/api/docs/">توثيق الـ API</a> · <a href="/admin/">لوحة Django</a></p>
+      <p class="auth-switch">معندكش حساب؟ <a href="/signup/">اعمل حساب طالب</a> أو <a href="/signup/?role=teacher">قدّم كمدرس</a></p>
+      <p class="small muted" style="margin-top:14px"><a href="/">← الرجوع للموقع</a></p>
     </div></section>
   </div>`;
   const f = $("#login-form");
@@ -99,6 +100,93 @@ function renderLogin() {
   f.identifier.focus();
 }
 
+// ===================== Signup =====================
+async function renderSignup() {
+  let role = new URLSearchParams(location.search).get("role") === "teacher" ? "teacher" : "student";
+  document.title = "حساب جديد";
+  let tree = [], subjects = [];
+  try { [tree, subjects] = await Promise.all([api("curricula/", { auth: false }), api("subjects/", { auth: false })]); } catch {}
+  subjects = Array.isArray(subjects) ? subjects : (subjects?.results || []);
+  const gradeOpts = tree.flatMap(c => (c.stages || []).map(st => html`<optgroup label="${tree.length > 1 ? c.name + " — " : ""}${st.name}">
+      ${(st.grades || []).map(g => html`<option value="${g.id}">${g.name}</option>`)}</optgroup>`));
+  const paint = () => {
+    document.body.innerHTML = html`<div class="login">
+    <section class="login-board">
+      <a class="login-brand" href="/" style="text-decoration:none"><img src="/static/img/logo.svg" alt="" width="40" height="40" style="border-radius:12px;box-shadow:0 0 0 1px rgba(255,255,255,.2)">${state.config?.site_name || "EduPro"}</a>
+      ${role === "teacher" ? html`<h1>درّس طلاب من كل مكان وانت في بيتك</h1>
+        <p>قدّم طلبك في دقيقتين. الإدارة بتراجع بياناتك ومؤهلاتك، وأول ما تتقبل تقدر تفتح مواعيدك وترفع كورساتك.</p>
+        <ul class="login-points"><li>${raw(icon("calendar", 18))} انت اللي بتحدد مواعيدك وسعر حصتك</li>
+          <li>${raw(icon("video", 18))} فصل لايف جاهز جوه الموقع — سبورة ومشاركة شاشة وتسجيل</li>
+          <li>${raw(icon("play", 18))} ارفع كورسات مسجلة (فيديو أو يوتيوب) وحدد مين يشوفها</li>
+          <li>${raw(icon("wallet", 18))} محفظة بأرباحك وطلب سحب في أي وقت</li></ul>
+        <ol class="signup-steps"><li><b>1</b>املا البيانات</li><li><b>2</b>ارفع شهاداتك من صفحتك</li><li><b>3</b>الإدارة توافق وتبدأ</li></ol>`
+      : html`<h1>ابدأ تذاكر صح من النهارده</h1>
+        <p>اعمل حسابك مجاناً واختار مدرسك وموادك. مفيش أي دفع لحد ما تختار باقة أو كورس.</p>
+        <ul class="login-points"><li>${raw(icon("video", 18))} حصص لايف مع مدرسين متخصصين</li>
+          <li>${raw(icon("play", 18))} كورسات مسجلة وفيديوهات مجانية</li>
+          <li>${raw(icon("help", 18))} اسأل أي سؤال في قسم الأسئلة والمدرسين يجاوبوك</li>
+          <li>${raw(icon("award", 18))} واجبات وامتحانات وشهادات إتمام</li></ul>`}
+    </section>
+    <section class="login-form"><div class="login-card signup-card">
+      <h2>حساب جديد</h2>
+      <div class="seg role-seg" role="radiogroup" aria-label="نوع الحساب">
+        <button type="button" data-role="student" class="${role === "student" ? "on" : ""}">${raw(icon("users", 16))} أنا طالب</button>
+        <button type="button" data-role="teacher" class="${role === "teacher" ? "on" : ""}">${raw(icon("book", 16))} أنا مدرس</button>
+      </div>
+      <form id="signup-form" novalidate>
+        <div class="field"><label for="full_name">الاسم بالكامل</label><input class="input" id="full_name" name="full_name" autocomplete="name" required></div>
+        <div class="grid2">
+          <div class="field"><label for="phone">رقم الموبايل</label><input class="input" id="phone" name="phone" type="tel" dir="ltr" autocomplete="tel" placeholder="01xxxxxxxxx" required></div>
+          <div class="field"><label for="gender">النوع</label><select class="input" id="gender" name="gender"><option value="">—</option><option value="male">ذكر</option><option value="female">أنثى</option></select></div>
+        </div>
+        <div class="field"><label for="email">الإيميل <span class="muted small">(اختياري)</span></label><input class="input" id="email" name="email" type="email" dir="ltr" autocomplete="email"></div>
+        <div class="field"><label for="password">كلمة السر</label><input class="input" id="password" name="password" type="password" dir="ltr" autocomplete="new-password" minlength="8" required>
+          <div class="hint">8 حروف على الأقل، ومتبقاش أرقام بس.</div></div>
+        ${role === "student" ? html`<div class="field"><label for="grade">الصف الدراسي</label>
+            <select class="input" id="grade" name="grade"><option value="">اختار صفك</option>${gradeOpts}</select></div>`
+        : html`<div class="field"><label>المواد اللي بتدرّسها</label>
+            <div class="subject-picks">${subjects.map(sb => html`<label><input type="checkbox" name="subject_ids" value="${sb.id}"><span>${sb.name}</span></label>`)}</div></div>
+          <div class="field"><label for="headline">نبذة قصيرة</label><input class="input" id="headline" name="headline" maxlength="120" placeholder="مثلاً: مدرس رياضيات ثانوي — خبرة في المراجعات النهائية"></div>
+          <div class="grid2"><div class="field"><label for="experience_years">سنين الخبرة</label><input class="input" id="experience_years" name="experience_years" type="number" min="0" max="60" dir="ltr"></div><div></div></div>
+          <div class="field"><label for="bio">عرّف الطلاب بيك</label><textarea class="input" id="bio" name="bio" rows="3" placeholder="مؤهلاتك، طريقتك في الشرح، الصفوف اللي بتدرّسها…"></textarea></div>`}
+        <div class="err hidden" id="signup-err" role="alert"></div>
+        <button class="btn lg block" type="submit">${role === "teacher" ? "ابعت طلب الانضمام" : "اعمل الحساب"}</button>
+        <p class="small muted" style="margin:0">بالتسجيل انت موافق على <a href="/p/terms/" target="_blank">الشروط والأحكام</a> و<a href="/p/privacy/" target="_blank">سياسة الخصوصية</a>.</p>
+      </form>
+      <p class="auth-switch">عندك حساب؟ <a href="/login/">سجّل دخول</a></p>
+    </div></section></div>`;
+    $$(".role-seg button").forEach(b => b.addEventListener("click", () => {
+      role = b.dataset.role; history.replaceState(null, "", role === "teacher" ? "/signup/?role=teacher" : "/signup/"); paint();
+    }));
+    const f = $("#signup-form");
+    f.addEventListener("submit", async e => {
+      e.preventDefault();
+      const err = $("#signup-err"); err.classList.add("hidden");
+      const body = { role, full_name: f.full_name.value.trim(), phone: f.phone.value.trim(), email: f.email.value.trim(),
+        password: f.password.value, gender: f.gender.value };
+      if (role === "student") { if (f.grade.value) body.grade = +f.grade.value; }
+      else {
+        body.subject_ids = $$("input[name=subject_ids]:checked", f).map(i => +i.value);
+        body.headline = f.headline.value.trim(); body.bio = f.bio.value.trim();
+        if (f.experience_years.value) body.experience_years = +f.experience_years.value;
+      }
+      if (!body.full_name || !body.phone || !body.password) { err.textContent = "الاسم والموبايل وكلمة السر مطلوبين."; err.classList.remove("hidden"); return; }
+      if (role === "teacher" && !body.subject_ids.length) { err.textContent = "اختار مادة واحدة على الأقل."; err.classList.remove("hidden"); return; }
+      const btn = f.querySelector("button[type=submit]"); btn.disabled = true; btn.textContent = "لحظة…";
+      try {
+        const d = await api("auth/register/", { method: "POST", body, auth: false });
+        tokens.set(d.access, d.refresh);
+        location.replace("/app/#/home");
+      } catch (ex) {
+        err.textContent = ex.message; err.classList.remove("hidden");
+        btn.disabled = false; btn.textContent = role === "teacher" ? "ابعت طلب الانضمام" : "اعمل الحساب";
+      }
+    });
+    f.full_name.focus();
+  };
+  paint();
+}
+
 // ===================== Shell =====================
 function renderShell() {
   const u = state.user;
@@ -114,7 +202,7 @@ function renderShell() {
       <div class="foot">
         <a href="#/profile">${raw(icon("user", 17))}حسابي</a>
         ${u.role === "admin" ? html`<a href="/admin/" target="_blank" rel="noopener">${raw(icon("settings", 17))}لوحة Django</a>` : ""}
-        ${["admin", "teacher"].includes(u.role) ? html`<a href="/api/docs/" target="_blank" rel="noopener">${raw(icon("book", 17))}توثيق الـ API</a>` : ""}
+        ${u.role === "admin" ? html`<a href="/api/docs/" target="_blank" rel="noopener">${raw(icon("book", 17))}توثيق الـ API</a>` : ""}
         <a href="/" target="_blank" rel="noopener">${raw(icon("globe", 17))}الموقع العام</a>
         <button type="button" id="logout">${raw(icon("logout", 17))}تسجيل الخروج</button>
       </div>
@@ -177,8 +265,9 @@ async function render() {
 // ===================== Boot =====================
 async function boot() {
   try { state.config = await api("config/", { auth: false }); } catch {}
-  const isLoginUrl = location.pathname.startsWith("/login");
+  const isLoginUrl = location.pathname.startsWith("/login") || location.pathname.startsWith("/signup");
   if (!tokens.access) {
+    if (location.pathname.startsWith("/signup")) { renderSignup(); return; }
     if (location.pathname.startsWith("/app") && location.hash.length > 2 && location.hash !== "#/home") {
       try { sessionStorage.setItem("ep_next", location.hash); } catch {}
     }

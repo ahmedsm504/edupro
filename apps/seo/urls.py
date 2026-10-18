@@ -10,6 +10,7 @@ from .sitemaps import sitemaps
 urlpatterns = [
     path("", v.home, name="home"),
     path("login/", v.app_shell, name="login"),
+    path("signup/", v.app_shell, name="signup"),
     path("app/", v.app_shell, name="app"),
     path("subjects/", v.subjects, name="subjects"),
     path("subjects/<str:slug>/", v.subject_detail, name="subject"),

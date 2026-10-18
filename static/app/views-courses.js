@@ -17,7 +17,7 @@ const PROVIDER_AR = { youtube: "يوتيوب", vimeo: "فيميو", bunny: "Bunn
 
 // لون الغلاف من لون المادة (ولو مفيش لون: أخضر المنصة)
 function coverBg(c) {
-  const col = c.subject?.color || "#0A4D44";
+  const col = c.subject?.color || "#13245E";
   return `background:linear-gradient(135deg, ${col} 0%, color-mix(in srgb, ${col} 65%, #000) 100%)`;
 }
 const youtubeId = url => (String(url || "").match(/(?:youtu\.be\/|[?&]v=|\/(?:embed|shorts|live)\/)([\w-]{11})/) || [])[1];
