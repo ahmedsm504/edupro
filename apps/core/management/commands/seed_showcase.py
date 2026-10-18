@@ -137,7 +137,31 @@ class Command(BaseCommand):
             n_q = self._questions(S, editor)
         self.stdout.write(self.style.SUCCESS(f"seed_showcase: {n_art} مقال و {n_q} سؤال."))
 
+    def _repair_media(self):
+        """لو السيرفر من غير Volume الملفات بتتمسح مع كل نشر: نرجّع صور مقالات الفريق من demo_assets."""
+        from django.core.files.storage import default_storage
+        from apps.seo.models import Article
+
+        from ._showcase_articles import ARTICLES
+        covers = {a["title"]: a.get("cover") for a in ARTICLES}
+        fixed = 0
+        for art in Article.objects.filter(title__in=covers.keys()).exclude(cover=""):
+            name = covers.get(art.title)
+            if art.cover and not default_storage.exists(art.cover.name) and name and (COVERS / name).exists():
+                with open(COVERS / name, "rb") as fh:
+                    saved = default_storage.save(art.cover.name, File(fh))
+                if saved != art.cover.name:
+                    Article.objects.filter(pk=art.pk).update(cover=saved)
+                fixed += 1
+        for f in INLINE.glob("*.png"):
+            if not default_storage.exists(f"blog/inline/{f.name}"):
+                self._inline_url(f.name)
+                fixed += 1
+        if fixed:
+            self.stdout.write(f"seed_showcase: رجّعت {fixed} صورة كانت ناقصة من التخزين.")
+
     def _refresh(self):
+        self._repair_media()
         marker = Path(settings.MEDIA_ROOT).parent / f".showcase_articles_{ARTICLES_VERSION}"
         if marker.exists():
             self.stdout.write(f"seed_showcase: المقالات على النسخة {ARTICLES_VERSION} بالفعل.")
