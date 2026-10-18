@@ -5,6 +5,8 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from apps.tutoring.jitsi import jaas_status
+
 
 class AppConfigView(APIView):
     """إعدادات عامة للتطبيق: أقل إصدار مسموح (force update)، روابط المتاجر، الدعم، الفيتشرز المفعلة."""
@@ -35,7 +37,7 @@ class AppConfigView(APIView):
                 "video_max_upload_mb": settings.VIDEO_MAX_UPLOAD_MB,
                 "video_formats": ["mp4", "webm", "mov", "m4v"],
             },
-            "live_provider": "jaas" if (settings.JITSI_JAAS_APP_ID and settings.JITSI_JAAS_KID) else ("jitsi_jwt" if settings.JITSI_APP_ID else "jitsi_public"),
+            "live_provider": "jaas" if jaas_status() == "ok" else ("jitsi_jwt" if settings.JITSI_APP_ID else "jitsi_public"),
             "websocket_path": "/ws/",
             "demo_login": settings.SHOW_DEMO_LOGIN,  # أزرار حسابات التجربة في صفحة الدخول
         })
@@ -47,4 +49,4 @@ class HealthView(APIView):
 
     @extend_schema(tags=["Config"], summary="فحص صحة السيرفر", responses={200: OpenApiTypes.OBJECT})
     def get(self, request):
-        return Response({"status": "ok"})
+        return Response({"status": "ok", "live": jaas_status()})

@@ -18,13 +18,29 @@ def _jaas_enabled():
                 and (settings.JITSI_JAAS_PRIVATE_KEY or settings.JITSI_JAAS_PRIVATE_KEY_FILE))
 
 
+def _jaas_key():
+    if settings.JITSI_JAAS_PRIVATE_KEY:  # نص المفتاح نفسه في متغير (Railway) — \n بتتحول لسطور
+        raw = settings.JITSI_JAAS_PRIVATE_KEY.strip().strip('"').strip("'")
+        return raw.replace("\\n", "\n").replace("\r", "").encode()
+    with open(settings.JITSI_JAAS_PRIVATE_KEY_FILE, "rb") as f:
+        return f.read()
+
+
+def jaas_status():
+    """off | ok | bad_key — من غير ما نكشف أي حاجة من المفتاح."""
+    if not _jaas_enabled():
+        return "off"
+    try:
+        from cryptography.hazmat.primitives.serialization import load_pem_private_key
+        load_pem_private_key(_jaas_key(), password=None)
+        return "ok"
+    except Exception:
+        return "bad_key"
+
+
 def _jaas_token(session, user, is_moderator):
     now = int(time.time())
-    if settings.JITSI_JAAS_PRIVATE_KEY:  # نص المفتاح نفسه في متغير (Railway) — \n بتتحول لسطور
-        key = settings.JITSI_JAAS_PRIVATE_KEY.replace("\\n", "\n").encode()
-    else:
-        with open(settings.JITSI_JAAS_PRIVATE_KEY_FILE, "rb") as f:
-            key = f.read()
+    key = _jaas_key()
     claims = {
         "aud": "jitsi", "iss": "chat", "sub": settings.JITSI_JAAS_APP_ID, "room": "*",
         "nbf": now - 60, "exp": max(int(session.ends_at.timestamp()) + 30 * 60, now + 15 * 60),
