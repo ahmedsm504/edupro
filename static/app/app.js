@@ -58,11 +58,11 @@ function renderLogin() {
       <p>ادخل بحسابك وهتروح على طول للوحة بتاعتك، سواء كنت طالب أو مدرس أو من الإدارة.</p>
       <ul class="login-points"><li>${raw(icon("video", 18))} حصص لايف جوه الموقع — من غير أي برنامج</li><li>${raw(icon("play", 18))} كورسات مسجلة بتكمّل من مكان ما وقفت</li>
         <li>${raw(icon("award", 18))} واجبات وامتحانات وشهادات إتمام</li></ul>
-      <div class="demo" aria-label="حسابات التجربة">
+      ${state.config?.demo_login ? html`<div class="demo" aria-label="حسابات التجربة">
         ${DEMO.map(([role, users]) => html`<div class="demo-row"><div class="demo-role">${role}</div>
           <div class="chips">${users.map(u => html`<button type="button" class="chip-btn" data-u="${u}"><b>${u}</b></button>`)}</div></div>`)}
       </div>
-      <div class="login-note">حسابات التجربة كلمة سرها <span dir="ltr">admin12345</span> — دوس على أي اسم يدخلك على طول.</div>
+      <div class="login-note">حسابات التجربة كلمة سرها <span dir="ltr">admin12345</span> — دوس على أي اسم يدخلك على طول.</div>` : ""}
     </section>
     <section class="login-form"><div class="login-card">
       <h2>تسجيل الدخول</h2>

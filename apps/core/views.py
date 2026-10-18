@@ -37,6 +37,7 @@ class AppConfigView(APIView):
             },
             "live_provider": "jaas" if (settings.JITSI_JAAS_APP_ID and settings.JITSI_JAAS_KID) else ("jitsi_jwt" if settings.JITSI_APP_ID else "jitsi_public"),
             "websocket_path": "/ws/",
+            "demo_login": settings.SHOW_DEMO_LOGIN,  # أزرار حسابات التجربة في صفحة الدخول
         })
 
 

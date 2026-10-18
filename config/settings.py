@@ -75,6 +75,8 @@ if ON_RAILWAY:
         if o.startswith("https://") and o not in CSRF_TRUSTED_ORIGINS:
             CSRF_TRUSTED_ORIGINS.append(o)
 SITE_NAME = env("SITE_NAME", "EduPro")
+# أزرار «حسابات التجربة» في صفحة الدخول — بتظهر في التطوير بس، أو لو حطيت SHOW_DEMO_LOGIN=true
+SHOW_DEMO_LOGIN = env_bool("SHOW_DEMO_LOGIN", DEBUG)
 
 INSTALLED_APPS = [
     "daphne",
