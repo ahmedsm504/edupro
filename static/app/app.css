@@ -642,3 +642,11 @@ table.t tr.click:hover td{background:var(--surface-2)}
   .exam-stage .es-ic{width:48px;height:48px;border-radius:14px}
   .exam-line .check{width:100%}
 }
+@media (max-width:980px){
+  .login-board{gap:14px;padding:22px 20px 26px}
+  .login-board h1{font-size:24px}
+  .login-board p{font-size:14.5px}
+  .login-board .login-points,.login-board .signup-steps{display:none}
+  .login-board::after{display:none}
+  .login-form{padding:24px 18px 40px;align-items:flex-start}
+}
