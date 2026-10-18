@@ -2,7 +2,8 @@
 
 المشروع جاهز لـ Railway: فيه `Dockerfile` و `railway.json` (السيرفر) و `railway.cron.json` (المهام كل 5 دقايق).
 لما المشروع يشتغل على Railway بيظبط لوحده: `DEBUG=False`، والدومين في `ALLOWED_HOSTS` و `CSRF_TRUSTED_ORIGINS` و `SITE_URL`،
-وملفات CSS/JS بتتقدّم بـ whitenoise، وصور `/media/` بتتقدّم من Django، والـ migrations بتتعمل قبل كل نشر.
+وملفات CSS/JS بتتقدّم بـ whitenoise، وصور `/media/` بتتقدّم من Django، والـ migrations بتتعمل أول ما السيرفر يقوم (`start.sh`)،
+و `SECRET_KEY` لو مش متحط بيتولّد مرة واحدة ويتحفظ على الـ Volume.
 
 ## 1) ارفع الكود على GitHub (repo خاص)
 
@@ -27,7 +28,7 @@ git push -u origin main
 |---|---|
 | `DATABASE_URL` | `${{Postgres.DATABASE_URL}}` |
 | `REDIS_URL` | `${{Redis.REDIS_URL}}` |
-| `SECRET_KEY` | نص عشوائي طويل (50 حرف أو أكتر) |
+| `SECRET_KEY` | اختياري — لو سبته فاضي بيتولّد لوحده ويتحفظ على الـ Volume |
 | `MEDIA_ROOT` | `/data/media` |
 | `PRIVATE_MEDIA_ROOT` | `/data/private` |
 | `SITE_NAME` | اسم المنصة (اختياري) |
@@ -38,6 +39,9 @@ git push -u origin main
 
 ## 3) أول حساب أدمن
 
+أسهل طريقة: من خدمة السيرفر ← تبويب **Console** واكتب `python manage.py createsuperuser`.
+أو من جهازك بالـ CLI:
+
 نزّل Railway CLI مرة واحدة:
 ```bash
 npm i -g @railway/cli
@@ -46,7 +50,8 @@ railway link          # اختار المشروع وخدمة السيرفر
 railway ssh           # بيفتح terminal جوه السيرفر
 python manage.py createsuperuser
 ```
-للتجربة بس (بيمسح كل البيانات!): `python manage.py seed_demo --reset` جوه نفس الـ `railway ssh`.
+للتجربة بس (بيمسح كل البيانات!): `python manage.py seed_demo --reset`، ولو عايز أزرار حسابات التجربة تظهر في صفحة الدخول ضيف `SHOW_DEMO_LOGIN=true`.
+**قبل ما تفتح للناس** امسح بيانات التجربة أو غيّر كلمات السر، لأن `admin12345` معروفة.
 
 ## 4) المهام كل 5 دقايق (تذكير الحصص وإنهاء الاشتراكات)
 
